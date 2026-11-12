@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elysium 背景故事展 · 2.5D</title>
+<meta name="description" content="以《Disco Elysium》世界觀為主題的 2.5D 虛擬策展。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;900&display=swap" rel="stylesheet">
+<!-- base.css：版面與定位（不建議修改）；theme.css：外觀（可以自由修改） -->
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="theme.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+
+<!-- 左上：工具列 -->
+<nav class="topbar">
+  <button id="btn-tour" class="btn">▶ 自動導覽</button>
+  <button id="btn-list" class="btn">☰ 展品</button>
+  <button id="btn-help" class="btn">？ 說明</button>
+  <a class="btn" href="../">第一人稱版</a>
+</nav>
+
+<!-- 左下：狀態卡 -->
+<aside class="status-card">
+  <div class="status-portrait"></div>
+  <div class="status-info">
+    <div class="status-name">訪客 VISITOR</div>
+    <div id="status-hall" class="status-hall"></div>
+    <div id="status-hall-zh" class="status-hall-zh"></div>
+  </div>
+  <div id="status-clock" class="status-clock"></div>
+</aside>
+
+<!-- 展品列表 -->
+<aside id="list" class="list">
+  <ul id="list-items"></ul>
+</aside>
+
+<!-- 右側：敘事欄 -->
+<article id="dlg" class="dlg">
+  <header class="dlg-head">
+    <div id="dlg-hall" class="dlg-hall"></div>
+    <button id="dlg-close" class="dlg-close" aria-label="關閉">✕</button>
+  </header>
+  <div class="dlg-subject">
+    <h1 id="dlg-title" class="dlg-title"></h1>
+    <div id="dlg-sub" class="dlg-sub"></div>
+  </div>
+  <div id="dlg-log" class="dlg-log"></div>
+  <ol id="dlg-choices" class="dlg-choices"></ol>
+</article>
+
+<div class="hint">點擊地板行走 · 點擊展品對話 · WASD 移動 · 滾輪縮放 · 數字鍵選擇回應</div>
+
+<!-- 開場 -->
+<section id="intro" class="intro">
+  <div class="intro-card">
+    <div class="intro-kicker">2.5D VIRTUAL EXHIBITION</div>
+    <h1 class="intro-title">ELYSIUM<span>一座世界的背景故事</span></h1>
+    <p>一個訪客走進一間沒有其他人的展覽館。導覽員的聲音從某處傳來，腦中也有幾個聲音，各自有話要說。</p>
+    <p>三個展廳：世界、歷史，以及故事開始的地方 Martinaise。</p>
+    <p class="intro-note">只介紹世界觀與開場資訊，不涉及主線劇透。畫面、模型與文字皆為原創詮釋，未使用遊戲素材。《Disco Elysium》© ZA/UM，非營利課堂作業。</p>
+    <div class="intro-actions">
+      <button id="enter-tour" class="btn btn--primary">▶ 跟著導覽參觀</button>
+      <button id="enter" class="btn">自由漫遊</button>
+    </div>
+  </div>
+</section>
+
+<div class="loading">展場佈置中…</div>
+<script type="module" src="iso.js"></script>
+</body>
+</html>

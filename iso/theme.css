@@ -1,0 +1,84 @@
+/* ─────────────────────────────────────────────
+   theme.css：介面外觀。這個檔案可以自由修改。
+   各元素位置請見 THEME.md。
+   ───────────────────────────────────────────── */
+:root {
+  --ink: #ece4d2;          /* 主要文字 */
+  --ink-old: #8f877a;      /* 已讀（較舊）的對話 */
+  --muted: #a39a88;        /* 次要文字 */
+  --bg: #11100e;           /* 面板底色 */
+  --line: rgba(236, 228, 210, .14);
+  --choice: #d9b97c;       /* 選項文字 */
+  --choice-hover: #fff1d0;
+  --hall-accent: #c9b27a;  /* 會隨展廳自動改變 */
+  --serif: "Noto Serif TC", "Libre Baskerville", serif;
+  --display: "Libre Baskerville", "Noto Serif TC", serif;
+}
+
+body { background: #0f0e0d; color: var(--ink); font-family: var(--serif); }
+.loading { background: #0f0e0d; color: var(--muted); letter-spacing: .3em; }
+
+/* 按鈕 */
+.btn { background: rgba(17, 16, 14, .82); border: 1px solid var(--line); color: var(--ink); padding: 7px 12px; font-size: 13px; letter-spacing: .04em; }
+.btn:hover { border-color: var(--hall-accent); }
+.btn.is-on, .btn--primary { background: var(--hall-accent); color: #14120f; border-color: var(--hall-accent); }
+
+/* 狀態卡 */
+.status-card { background: rgba(17, 16, 14, .85); border: 1px solid var(--line); padding: 10px 14px 10px 10px; }
+.status-portrait { width: 54px; height: 66px; background:
+  radial-gradient(ellipse 30% 22% at 50% 34%, #c9a58a 60%, transparent 62%),
+  radial-gradient(ellipse 48% 40% at 50% 100%, #3b3a33 70%, transparent 72%),
+  linear-gradient(#3a4644, #1c201f); border: 1px solid var(--line); }
+.status-name { font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.status-hall { font-family: var(--display); font-weight: 700; color: var(--hall-accent); font-size: 14px; letter-spacing: .1em; margin-top: 2px; }
+.status-hall-zh { font-size: 14px; }
+.status-clock { font-family: var(--display); font-size: 22px; margin-top: 4px; letter-spacing: .02em; }
+
+.hint { font-size: 12px; color: var(--muted); text-shadow: 0 1px 3px #000; }
+
+/* 展品列表 */
+.list { background: rgba(17, 16, 14, .94); border: 1px solid var(--line); padding: 8px 0; width: 300px; }
+.list-hall { font-family: var(--display); font-size: 11px; letter-spacing: .14em; color: var(--hall-accent); padding: 10px 14px 4px; }
+.list-item { padding: 6px 14px; font-size: 14px; }
+.list-item:hover { background: rgba(236, 228, 210, .07); }
+.list-no { font-family: var(--display); color: var(--muted); font-size: 12px; margin-right: 6px; }
+
+/* 敘事欄 */
+.dlg { background: linear-gradient(90deg, rgba(10, 9, 8, 0) 0, rgba(10, 9, 8, .92) 40px, rgba(10, 9, 8, .97) 100%); padding: 20px 28px 16px 56px; }
+.dlg-hall { font-family: var(--display); font-size: 11px; letter-spacing: .16em; color: var(--hall-accent); }
+.dlg-close { background: none; border: 0; font-size: 18px; color: var(--muted); }
+.dlg-subject { padding: 10px 0 12px; border-bottom: 1px solid var(--line); }
+.dlg-title { font-size: 22px; margin: 0; line-height: 1.35; }
+.dlg-sub { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+.dlg-log { padding: 16px 6px 8px 0; font-size: 16.5px; line-height: 1.8;
+  -webkit-mask-image: linear-gradient(transparent 0, #000 70px); mask-image: linear-gradient(transparent 0, #000 70px); }
+.dlg-log .sep { text-align: center; font-family: var(--display); font-size: 11px; color: var(--muted); letter-spacing: .2em; margin: 26px 0 14px; opacity: .6; }
+.line { margin: 0 0 14px; color: var(--ink); }
+.line.is-old { color: var(--ink-old); }
+.line .who { font-weight: 900; letter-spacing: .1em; color: var(--who, var(--ink)); }
+.line .dash { color: var(--muted); }
+.line--narration .text { color: #bdb4a2; }               /* 旁白：沒有說話者 */
+.line--narration.is-old .text { color: #7a7366; }
+.line--voice .text { font-style: italic; }                /* 內心聲音 */
+.line--you .who { color: var(--ink); }                     /* 你 */
+
+.dlg-choices { padding: 12px 0 4px; border-top: 1px solid var(--line); min-height: 64px; }
+.choice { padding: 5px 8px; color: var(--choice); font-size: 15.5px; line-height: 1.5; border-left: 2px solid transparent; }
+.choice:hover { color: var(--choice-hover); background: rgba(236, 228, 210, .06); border-left-color: var(--hall-accent); }
+.choice-key { color: var(--muted); font-family: var(--display); margin-right: 2px; }
+
+/* 開場 */
+.intro { background: rgba(8, 7, 6, .82); }
+.intro-card { background: #15130f; border: 1px solid var(--line); border-top: 3px solid var(--hall-accent); padding: 34px 38px; font-size: 16px; line-height: 1.85; }
+.intro-kicker { font-family: var(--display); font-size: 11px; letter-spacing: .28em; color: var(--hall-accent); }
+.intro-title { font-family: var(--display); font-size: 52px; letter-spacing: .08em; margin: 8px 0 14px; line-height: 1.1; }
+.intro-title span { display: block; font-family: var(--serif); font-size: 22px; letter-spacing: .2em; color: var(--muted); margin-top: 6px; }
+.intro-note { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.intro-actions .btn { font-size: 15px; padding: 9px 16px; }
+
+@media (max-width: 700px) {
+  .intro-card { padding: 22px 20px; }
+  .intro-title { font-size: 36px; }
+  .dlg { padding: 16px 18px 12px 22px; background: rgba(10, 9, 8, .96); }
+}

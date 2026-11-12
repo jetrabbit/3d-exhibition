@@ -277,3 +277,6 @@ body.ready #loading { display: none; }
 @media (min-width: 900px) {
   body:has(#info.open) #toolbar, body:has(#info.open) #hint { left: calc(50% - 230px); }
 }
+
+#toolbar .btn-link { display: inline-flex; align-items: center; padding: 8px 14px; font-size: 14px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: rgba(241,234,217,.06); }
+#toolbar .btn-link:hover { border-color: var(--accent); }
