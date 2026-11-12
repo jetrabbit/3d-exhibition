@@ -367,9 +367,13 @@ const docent = (t) => {
   say('CURATOR · 導覽員', t, { cls: 'docent', color: 'var(--accent)', portrait: p });
 };
 
-// 主動技能檢定（移植自 speech-cabinet Player.tsx isActiveCheck 流程：捲軸快轉 + 雙骰 + 成功/失敗橫幅 + 音效）
+let checkInProgress = false;
+let checkInterval = null;
+
+// 主動技能檢定（移植自 speech-cabinet Player.tsx isActiveCheck 流程：捲軸快轉 + 雙骰翻滾 + 成功/失敗橫幅與光輝 + 音效）
 function runActiveCheck(v) {
-  if (!v || !current) return;
+  if (!v || !current || checkInProgress) return;
+  checkInProgress = true;
   const ex = current;
   const [vName, vText, vCheck] = v;
   const meta = VOICE_META[vName] || { en: vName, attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' };
@@ -377,37 +381,63 @@ function runActiveCheck(v) {
   const [die1, die2] = isFailure ? [2, 1] : [5, 6];
 
   choicesEl.innerHTML = '';
-  audio.playMp3(isFailure ? 'public/sounds/failure.mp3' : 'public/sounds/success.mp3');
+  voiceRolled = true;
 
   // 1. 紙捲高速滾動 (tapeIsRolling)
   messagesEl.classList.add('tape-rolling');
-  rollTape(1100, true);
+  rollTape(1600, true);
 
-  // 2. 顯示雙骰與檢定背景特效
+  // 2. 顯示檢定覆蓋層並開始快速滾骰動畫
   if (checkOverlay) {
     checkBgImg.src = isFailure ? 'public/effects/check-failure-background.png' : 'public/effects/check-success-background.png';
     checkTextImg.src = isFailure ? 'public/effects/check-failure.svg' : 'public/effects/check-success.svg';
-    diceStripEl.innerHTML = renderPipDie(die1) + renderPipDie(die2);
-    checkOverlay.classList.remove('hidden', 'fade-out');
+    checkOverlay.classList.remove('hidden', 'resolved', 'fade-out');
+
+    if (checkInterval) clearInterval(checkInterval);
+    checkInterval = setInterval(() => {
+      const r1 = Math.floor(Math.random() * 6) + 1;
+      const r2 = Math.floor(Math.random() * 6) + 1;
+      diceStripEl.innerHTML = renderPipDie(r1) + renderPipDie(r2);
+    }, 60);
   }
 
+  // 3. 1000ms: 骰子停住鎖定點數，音效敲響，判定橫幅與光束炸現！
   setTimeout(() => {
-    if (current !== ex) return;
-    messagesEl.classList.remove('tape-rolling');
-    if (checkOverlay) checkOverlay.classList.add('fade-out');
-    audio.playMp3(meta.sound);
-    say(`${meta.en} (${vName})`, vText, {
-      cls: `voice text-${meta.attr}`,
-      color: VOICE_COLORS[vName],
-      check: vCheck || 'Medium: Success',
-      portrait: meta.portrait,
-    });
-    voiceRolled = true;
-    renderChoices();
+    if (current !== ex) {
+      if (checkInterval) clearInterval(checkInterval);
+      checkInProgress = false;
+      return;
+    }
+    if (checkInterval) clearInterval(checkInterval);
+    diceStripEl.innerHTML = renderPipDie(die1) + renderPipDie(die2);
+    if (checkOverlay) checkOverlay.classList.add('resolved');
+    audio.playMp3(isFailure ? 'public/sounds/failure.mp3' : 'public/sounds/success.mp3');
+
+    // 4. 1900ms: 橫幅滑出、光芒淡出，技能發話，肖像切換為該技能，文字進入對話流！
     setTimeout(() => {
-      if (checkOverlay) checkOverlay.classList.add('hidden');
-    }, 1100);
-  }, 1100);
+      if (current !== ex) {
+        checkInProgress = false;
+        return;
+      }
+      messagesEl.classList.remove('tape-rolling');
+      if (checkOverlay) checkOverlay.classList.add('fade-out');
+      audio.playMp3(meta.sound);
+      setPortrait(meta.portrait);
+      say(`${meta.en} (${vName})`, vText, {
+        cls: `voice text-${meta.attr}`,
+        color: VOICE_COLORS[vName],
+        check: vCheck || 'Medium: Success',
+        portrait: meta.portrait,
+      });
+      renderChoices();
+
+      // 5. 2600ms: 覆蓋層完全隱藏
+      setTimeout(() => {
+        if (checkOverlay) checkOverlay.classList.add('hidden');
+        checkInProgress = false;
+      }, 700);
+    }, 900);
+  }, 1000);
 }
 
 function renderChoices() {
@@ -442,10 +472,16 @@ function renderChoices() {
 }
 function cont(t = '"繼續說。"') {
   if (!current || step >= current.body.length) return;
-  say('YOU', t.replace(/ \[Continue\.\]$/, ''), { cls: 'you', color: '#CFD5BF', portrait: 'public/portraits/You.png' });
+  say('YOU', t.replace(/ \[Continue\.\]$/, ''), { cls: 'you', color: '#CFD5BF' });
   const ex = current;
-  setTimeout(() => { if (current !== ex) return; docent(ex.body[step++]); renderChoices(); }, 300);
+  const p = EXHIBIT_PORTRAITS[ex.id] || 'public/portraits/Encyclopedia.png';
   choicesEl.innerHTML = '';
+  setTimeout(() => {
+    if (current !== ex) return;
+    setPortrait(p);
+    docent(ex.body[step++]);
+    renderChoices();
+  }, 300);
 }
 const idx = (ex) => EXHIBITS.indexOf(ex);
 function goTo(ex, t) {
@@ -461,41 +497,34 @@ const goPrev = (t) => goTo(EXHIBITS[(idx(current) - 1 + EXHIBITS.length) % EXHIB
 function openInfo(ex, fromTour = false) {
   const hall = hallOf(ex.hall);
   const same = current === ex;
-  current = ex; step = 0; voiceRolled = false;
+  current = ex; step = 0; voiceRolled = false; checkInProgress = false;
+  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkOverlay) checkOverlay.classList.add('hidden');
   $('#info-hall').textContent = `HALL ${hall.no} · ${hall.zh}`;
   $('#info-no').textContent = `EXHIBIT № ${ex.no}`;
   $('#info-title').textContent = ex.title;
   $('#info-zh').textContent = ex.zh;
   info.style.setProperty('--accent', hall.palette.accent);
   if (coverCanvas) drawCover(coverCanvas, ex, hall);
+  const p = EXHIBIT_PORTRAITS[ex.id] || 'public/portraits/Encyclopedia.png';
+  setPortrait(p);
   info.classList.add('open');
   if (!same) {
     const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `— № ${ex.no} · ${ex.title.toUpperCase()} —`;
     messagesEl.appendChild(sep);
   }
   docent(ex.body[step++]);
-  const v = VOICES[ex.id];
-  if (v) {
-    const [vName, vText, vCheck] = v;
-    const meta = VOICE_META[vName] || { en: vName, attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' };
-    setTimeout(() => {
-      if (current !== ex || voiceRolled) return;
-      voiceRolled = true;
-      audio.playMp3(meta.sound);
-      say(`${meta.en} (${vName})`, vText, {
-        cls: `voice text-${meta.attr}`,
-        color: VOICE_COLORS[vName],
-        check: vCheck || 'Medium: Success',
-        portrait: meta.portrait,
-      });
-      renderChoices();
-    }, 900);
-  }
   renderChoices();
   document.querySelectorAll('#list li').forEach((li) => li.classList.toggle('active', li.dataset.id === ex.id));
   if (!fromTour) stopTour();
 }
-function closeInfo() { info.classList.remove('open'); current = null; choicesEl.innerHTML = ''; }
+function closeInfo() {
+  info.classList.remove('open');
+  current = null;
+  choicesEl.innerHTML = '';
+  checkInProgress = false;
+  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+}
 $('#info-close').onclick = closeInfo;
 addEventListener('keydown', (e) => {
   if (!current || !/^Digit[1-9]$/.test(e.code)) return;
