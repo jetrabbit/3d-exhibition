@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { HALLS, EXHIBITS, VOICES, VOICE_COLORS } from './exhibits.js';
-import { paintedSurface, panelTexture, plaqueTexture, signTexture } from './art.js';
+import { HALLS, EXHIBITS, VOICES, VOICE_COLORS, VOICE_META } from './exhibits.js';
+import { paintedSurface, panelTexture, plaqueTexture, signTexture, drawCover, drawPortrait } from './art.js';
 import { buildModel, plinth } from './models.js';
 
 const W = 22, HALF = W / 2, H = 6, Z_END = -74, DOOR = 2.6;
@@ -11,6 +11,8 @@ await Promise.race([
     document.fonts.load('600 40px "Noto Serif TC"'),
     document.fonts.load('700 40px "Libre Baskerville"'),
     document.fonts.load('italic 40px "Libre Baskerville"'),
+    document.fonts.load('400 20px "Spectral"'),
+    document.fonts.load('600 20px "Spectral"'),
   ]),
   new Promise((r) => setTimeout(r, 4000)),
 ]);
@@ -296,50 +298,84 @@ function updateTour(dt) {
 }
 const holdFor = (text) => Math.max(5, Math.min(14, text.length / 14));
 
-// ───────── UI ─────────
+// ───────── UI（Speech Cabinet / Disco Elysium 風格對話捲軸）─────────
 const $ = (s) => document.querySelector(s);
 const info = $('#info');
 const logEl = $('#log'), choicesEl = $('#choices');
-let current = null, step = 0;
+const coverCanvas = $('#info-cover-canvas');
+const portraitCanvas = $('#info-portrait');
+const speakerTagEl = $('#info-speaker-tag');
+const tapeEl = $('#info-tape');
+let current = null, step = 0, tapePos = 0;
 const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-function say(who, text, cls = '', color = '') {
+function rollTape(delta = 48) {
+  tapePos += delta;
+  if (tapeEl) tapeEl.style.backgroundPositionY = `-${tapePos}px`;
+}
+
+function updatePortrait(kind, label, color, seedKey) {
+  if (!portraitCanvas) return;
+  const accent = current ? hallOf(current.hall).palette.accent : '#c9b27a';
+  drawPortrait(portraitCanvas, kind, accent, seedKey || (current ? current.id : 'docent'));
+  if (speakerTagEl) {
+    speakerTagEl.textContent = label;
+    speakerTagEl.style.color = color || 'var(--accent)';
+  }
+}
+
+function say(who, text, { cls = '', color = '', check = '', kind = 'docent' } = {}) {
   logEl.querySelectorAll('.line').forEach((l) => l.classList.add('old'));
   const d = document.createElement('div');
-  d.className = `line ${cls}`;
-  d.innerHTML = `<b style="${color ? `color:${color}` : ''}">${esc(who)}</b><span class="dash"> — </span>${esc(text).replace(/\n/g, '<br>')}`;
+  d.className = `line ${cls}`.trim();
+  const checkHtml = check ? `<span class="check"> [${esc(check)}]</span>` : '';
+  d.innerHTML = `<span class="speaker" style="${color ? `color:${color}` : ''}">${esc(who)}</span>${checkHtml}<span class="dash"> &ndash; </span><span class="speech-body">${esc(text).replace(/\n/g, '<br>')}</span>`;
   logEl.appendChild(d);
+  rollTape(54);
+  updatePortrait(kind, who, color, `${current ? current.id : 'x'}-${kind}`);
   requestAnimationFrame(() => d.classList.add('in'));
   logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
 }
-const docent = (t) => say('導覽員', t, 'docent', 'var(--accent)');
+
+const docent = (t) => {
+  audio.chime('docent');
+  say('CURATOR · 導覽員', t, { cls: 'docent', color: 'var(--accent)', kind: 'docent' });
+};
 
 function renderChoices() {
   choicesEl.innerHTML = '';
   if (!current) return;
   const opts = [];
-  if (step < current.body.length) opts.push(['「繼續說。」', cont]);
-  else opts.push(['「我明白了。帶我去下一件展品。」', goNext]);
-  if (step < current.body.length) opts.push(['「先帶我去下一件展品吧。」', goNext]);
-  opts.push(['「回到上一件。」', goPrev]);
-  opts.push(['（轉身離開。）', () => { say('你', '（你轉身離開。）', 'you'); setTimeout(closeInfo, 350); }]);
+  if (step < current.body.length) opts.push(['"繼續說。" [Continue.]', cont]);
+  else opts.push(['"我明白了。帶我去下一件展品。"', goNext]);
+  if (step < current.body.length) opts.push(['"先帶我去下一件展品吧。"', goNext]);
+  opts.push(['"回到上一件展品。"', goPrev]);
+  opts.push(['[Leave.]（轉身離開。）', () => {
+    audio.chime('you');
+    say('YOU · 你', '（你轉身離開。）', { cls: 'you', color: '#CFD5BF', kind: 'you' });
+    setTimeout(closeInfo, 350);
+  }]);
   opts.forEach(([t, fn], i) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="k">${i + 1}.</span> ${esc(t)}`;
+    li.innerHTML = `<span class="k">${i + 1}. -</span> <span class="opt-text">${esc(t)}</span>`;
     li.onclick = () => { stopTour(); fn(t); };
     choicesEl.appendChild(li);
   });
 }
-function cont(t = '「繼續說。」') {
+function cont(t = '"繼續說。"') {
   if (!current || step >= current.body.length) return;
-  say('你', t, 'you');
+  audio.chime('you');
+  say('YOU · 你', t.replace(/ \[Continue\.\]$/, ''), { cls: 'you', color: '#CFD5BF', kind: 'you' });
   const ex = current;
   setTimeout(() => { if (current !== ex) return; docent(ex.body[step++]); renderChoices(); }, 300);
   choicesEl.innerHTML = '';
 }
 const idx = (ex) => EXHIBITS.indexOf(ex);
 function goTo(ex, t) {
-  if (t) say('你', t, 'you');
+  if (t) {
+    audio.chime('you');
+    say('YOU · 你', t, { cls: 'you', color: '#CFD5BF', kind: 'you' });
+  }
   choicesEl.innerHTML = '';
   flyTo(ex, () => openInfo(ex, !!tour));
 }
@@ -351,18 +387,32 @@ function openInfo(ex, fromTour = false) {
   const same = current === ex;
   current = ex; step = 0;
   $('#info-hall').textContent = `HALL ${hall.no} · ${hall.zh}`;
-  $('#info-no').textContent = `№ ${ex.no}`;
+  $('#info-no').textContent = `EXHIBIT № ${ex.no}`;
   $('#info-title').textContent = ex.title;
   $('#info-zh').textContent = ex.zh;
   info.style.setProperty('--accent', hall.palette.accent);
+  if (coverCanvas) drawCover(coverCanvas, ex, hall);
   info.classList.add('open');
   if (!same) {
-    const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `— № ${ex.no}　${ex.zh} —`;
+    const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `— № ${ex.no} · ${ex.title.toUpperCase()} —`;
     logEl.appendChild(sep);
   }
   docent(ex.body[step++]);
   const v = VOICES[ex.id];
-  if (v) setTimeout(() => { if (current === ex) say(`${v[0]}`, v[1], 'voice', VOICE_COLORS[v[0]]); }, 900);
+  if (v) {
+    const [vName, vText, vCheck] = v;
+    const meta = VOICE_META[vName] || { en: vName, attr: 'intellect' };
+    setTimeout(() => {
+      if (current !== ex) return;
+      audio.chime(meta.attr);
+      say(`${meta.en} (${vName})`, vText, {
+        cls: `voice attr-${meta.attr}`,
+        color: VOICE_COLORS[vName],
+        check: vCheck || 'Medium: Success',
+        kind: vName,
+      });
+    }, 900);
+  }
   renderChoices();
   document.querySelectorAll('#list li').forEach((li) => li.classList.toggle('active', li.dataset.id === ex.id));
   if (!fromTour) stopTour();
@@ -379,6 +429,40 @@ $('#btn-tour').onclick = () => (tour ? stopTour() : startTour(current ? idx(curr
 $('#btn-list').onclick = () => $('#list').classList.toggle('open');
 $('#btn-help').onclick = () => $('#intro').classList.remove('hidden');
 $('#btn-full').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.());
+
+// ───────── Speech Cabinet 漂浮灰燼粒子（AshesBackground）─────────
+{
+  const ashCanvas = $('#info-ashes');
+  if (ashCanvas) {
+    const actx = ashCanvas.getContext('2d');
+    const AW = ashCanvas.width, AH = ashCanvas.height;
+    const ashes = Array.from({ length: 42 }, () => ({
+      x: Math.random() * AW,
+      y: Math.random() * AH,
+      size: Math.random() * 2.2 + 1.4,
+      sx: (Math.random() + 0.15) * 0.45,
+      sy: -(Math.random() * 0.4 + 0.15),
+      alpha: Math.random() * 0.32 + 0.12,
+    }));
+    ctx.tick.push((t) => {
+      if (!info.classList.contains('open')) return;
+      actx.clearRect(0, 0, AW, AH);
+      for (const a of ashes) {
+        a.x += a.sx + Math.sin(t + a.y * 0.01) * 0.12;
+        a.y += a.sy;
+        if (a.y < -10 || a.x > AW + 10) {
+          a.x = Math.random() * AW * 1.2 - AW * 0.2;
+          a.y = AH + 6;
+        }
+        const al = a.alpha * ((a.y / AH + 0.35) / 1.35);
+        actx.fillStyle = `rgba(220, 161, 141, ${al.toFixed(3)})`;
+        actx.beginPath();
+        actx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+        actx.fill();
+      }
+    });
+  }
+}
 
 // 展品列表
 {
@@ -398,7 +482,7 @@ $('#btn-full').onclick = () => (document.fullscreenElement ? document.exitFullsc
 $('#enter').onclick = () => { $('#intro').classList.add('hidden'); audio.maybeStart(); };
 $('#enter-tour').onclick = () => { $('#intro').classList.add('hidden'); audio.maybeStart(); startTour(0); };
 
-// ───────── 環境音（即時合成，無音檔）─────────
+// ───────── 環境音與技能檢定音效（即時合成，無音檔）─────────
 const audio = (() => {
   let ac = null, gain = null, on = true;
   function start() {
@@ -421,13 +505,37 @@ const audio = (() => {
     src.connect(lp).connect(ng).connect(gain); src.start();
     gain.gain.linearRampToValueAtTime(0.6, ac.currentTime + 3);
   }
+  function chime(type) {
+    if (!on || !ac) return;
+    const now = ac.currentTime;
+    const tones = {
+      intellect: [523.25, 659.25], // 清亮雙音
+      psyche: [392.0, 493.88],     // 溫潤共鳴
+      physique: [196.0, 233.08],   // 低沉震動
+      motorics: [587.33, 880.0],   // 敏捷高音
+      docent: [329.63, 392.0],     // 機械紙捲推進聲
+      you: [261.63],               // 輕巧點擊
+    }[type] || [330];
+    tones.forEach((freq, i) => {
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = type === 'physique' ? 'triangle' : 'sine';
+      o.frequency.setValueAtTime(freq, now + i * 0.055);
+      g.gain.setValueAtTime(0.0001, now + i * 0.055);
+      g.gain.exponentialRampToValueAtTime(type === 'you' ? 0.025 : 0.045, now + i * 0.055 + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.055 + 0.28);
+      o.connect(g).connect(ac.destination);
+      o.start(now + i * 0.055);
+      o.stop(now + i * 0.055 + 0.3);
+    });
+  }
   const btn = $('#btn-sound');
   btn.onclick = () => {
     on = !on; btn.textContent = on ? '♪ 環境音：開' : '♪ 環境音：關';
     if (on && !ac) start();
     if (gain) gain.gain.linearRampToValueAtTime(on ? 0.6 : 0, ac.currentTime + 0.6);
   };
-  return { maybeStart() { if (on && !ac) start(); } };
+  return { maybeStart() { if (on && !ac) start(); }, chime };
 })();
 
 // ───────── 小地圖 ─────────

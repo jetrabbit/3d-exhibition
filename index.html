@@ -7,7 +7,7 @@
 <meta name="description" content="以《Disco Elysium》世界觀為主題的 3D 虛擬策展：世界、歷史、馬汀內斯。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;900&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
@@ -52,16 +52,29 @@
   <ul id="list-items"></ul>
 </aside>
 
-<!-- 展品說明：對話介面 -->
+<!-- 展品說明：Speech Cabinet 風格對話介面 -->
 <article id="info">
-  <div class="info-head">
-    <div id="info-hall"></div>
-    <button id="info-close" aria-label="關閉">✕</button>
-  </div>
-  <div id="info-subject">
-    <span id="info-no"></span>
-    <h1 id="info-zh"></h1>
-    <h2 id="info-title"></h2>
+  <div id="info-tape"></div>
+  <canvas id="info-ashes" width="480" height="960"></canvas>
+  <div class="info-top">
+    <div id="info-cover">
+      <canvas id="info-cover-canvas" width="560" height="240"></canvas>
+      <div class="info-head">
+        <div id="info-hall"></div>
+        <button id="info-close" aria-label="關閉">✕</button>
+      </div>
+    </div>
+    <div class="info-hero">
+      <div id="info-portrait-wrap">
+        <canvas id="info-portrait" width="180" height="250"></canvas>
+      </div>
+      <div id="info-subject">
+        <span id="info-no"></span>
+        <h1 id="info-zh"></h1>
+        <h2 id="info-title"></h2>
+        <div id="info-speaker-tag"></div>
+      </div>
+    </div>
   </div>
   <div id="log"></div>
   <ol id="choices"></ol>

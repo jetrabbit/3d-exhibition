@@ -429,3 +429,120 @@ function tl(ctx, a, seed, base, accent, icon) {
       break;
   }
 }
+
+// ───────── Speech Cabinet 對話頂部展品封面與表現主義頭像 ─────────
+export function drawCover(c, ex, hall) {
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  const seed = [...ex.id].reduce((a, ch) => a * 31 + ch.charCodeAt(0), 17);
+  const pal = hall.palette;
+  ctx.save();
+  (ARTS[ex.art] || ARTS.default)(ctx, { x: 0, y: 0, w, h }, seed, pal, ex);
+  // 下方與兩側暗角漸層，融入黑色紙捲底色
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, 'rgba(13,13,12,0.35)');
+  g.addColorStop(0.55, 'rgba(13,13,12,0.12)');
+  g.addColorStop(1, 'rgba(13,13,12,0.98)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
+export function drawPortrait(c, kind, accent = '#c9b27a', seedKey = 'docent') {
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  const seed = [...seedKey].reduce((a, ch) => a * 31 + ch.charCodeAt(0), 29);
+  const r = rng(seed);
+  ctx.save();
+  ctx.clearRect(0, 0, w, h);
+
+  // 背景筆觸（依發言者類型切換）
+  const palMap = {
+    docent: ['#1e2224', '#2c3437', accent, '#121415'],
+    記憶: ['#112530', '#1e4b5f', '#5CC1D7', '#0b151c'],
+    直覺: ['#2d121a', '#5c1f31', '#CB476A', '#18090d'],
+    懷疑: ['#2b2310', '#5e4b18', '#E3B734', '#171208'],
+    想像: ['#1b142e', '#382766', '#7556CF', '#0f0b1a'],
+    you: ['#1f241f', '#364034', '#8ea885', '#121512'],
+  };
+  const pal = palMap[kind] || palMap.docent;
+  ctx.fillStyle = pal[3];
+  ctx.fillRect(0, 0, w, h);
+  brush(ctx, w, h, pal, { count: 220, amt: 22, seed, len: [16, 65], width: [4, 14], alpha: [0.15, 0.45] });
+
+  const cx = w * 0.5, cy = h * 0.44;
+
+  if (kind === '記憶') {
+    // 幾何光環與碎片（Intellect / Encyclopedia）
+    ctx.strokeStyle = '#5CC1D7';
+    ctx.lineWidth = 2.5;
+    for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = 0.45 + i * 0.2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 24 + i * 16, i * 0.6, i * 0.6 + Math.PI * 1.4);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.85;
+    silhouette(ctx, cx, h * 0.96, 0.95, '#0e171d', { coat: false });
+    brush(ctx, w, h, ['#5CC1D7', '#baebf7', '#1e4b5f'], { count: 55, amt: 15, seed: seed + 5, area: [cx - 45, cy - 50, 90, 100], len: [8, 28], width: [2, 6], alpha: [0.25, 0.65] });
+  } else if (kind === '直覺') {
+    // 都市電流與冷顫線條（Physique / Shivers）
+    ctx.strokeStyle = '#CB476A';
+    for (let i = 0; i < 14; i++) {
+      ctx.globalAlpha = 0.25 + r() * 0.5;
+      ctx.lineWidth = 1.5 + r() * 3;
+      ctx.beginPath();
+      ctx.moveTo(cx + (r() - 0.5) * 120, 0);
+      ctx.lineTo(cx + (r() - 0.5) * 40, cy);
+      ctx.lineTo(cx + (r() - 0.5) * 110, h);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.9;
+    silhouette(ctx, cx, h * 0.98, 0.98, '#17080d', { coat: true });
+    brush(ctx, w, h, ['#CB476A', '#f28da8', '#2d121a'], { count: 60, amt: 18, seed: seed + 9, area: [cx - 50, cy - 45, 100, 110], len: [10, 32], width: [3, 7], alpha: [0.2, 0.6] });
+  } else if (kind === '懷疑') {
+    // 銳利斜向筆觸與雙瞳光點（Motorics / Rhetoric）
+    brush(ctx, w, h, ['#E3B734', '#f7df8b', '#3a2e10'], { count: 90, amt: 16, seed: seed + 11, angle: -0.45, len: [20, 60], width: [2, 8], alpha: [0.2, 0.55] });
+    silhouette(ctx, cx, h * 0.98, 0.96, '#1a1509', { coat: true, glasses: true });
+    ctx.fillStyle = '#fff2b2';
+    ctx.fillRect(cx - 16, cy - 16, 11, 5);
+    ctx.fillRect(cx + 5, cy - 16, 11, 5);
+  } else if (kind === '想像') {
+    // 星雲旋渦與超現實王冠（Psyche / Inland Empire）
+    const g = ctx.createRadialGradient(cx, cy - 8, 4, cx, cy - 8, 72);
+    g.addColorStop(0, 'rgba(195, 170, 255, 0.85)');
+    g.addColorStop(0.5, 'rgba(117, 86, 207, 0.45)');
+    g.addColorStop(1, 'rgba(20, 12, 36, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    silhouette(ctx, cx, h * 0.98, 0.95, '#120c21', { coat: false });
+    brush(ctx, w, h, ['#7556CF', '#d0befc', '#ffffff'], { count: 70, amt: 20, seed: seed + 15, area: [cx - 55, cy - 60, 110, 110], len: [8, 26], width: [2, 7], alpha: [0.25, 0.65] });
+  } else {
+    // 策展人 / 導覽員或觀者（表現主義厚塗肖像）
+    const g = ctx.createRadialGradient(cx, cy - 10, 8, cx, cy, 85);
+    g.addColorStop(0, accent);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalAlpha = 1;
+    silhouette(ctx, cx, h * 0.98, 1.0, '#131516', { coat: true, glasses: kind === 'docent' });
+    brush(ctx, w, h, [accent, '#e8dfcc', '#38342e', '#1a1816'], { count: 85, amt: 20, seed: seed + 3, area: [cx - 48, cy - 55, 96, 130], len: [8, 28], width: [3, 8], alpha: [0.2, 0.55] });
+  }
+
+  // 復古畫框暗角與刮痕邊界（仿 Speech Cabinet /layout/frame.png）
+  const vig = ctx.createRadialGradient(cx, h * 0.5, w * 0.25, cx, h * 0.5, w * 0.75);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.68)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = 'rgba(207, 213, 191, 0.38)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(3, 3, w - 6, h - 6);
+  ctx.strokeStyle = 'rgba(18, 17, 16, 0.85)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(7, 7, w - 14, h - 14);
+  ctx.restore();
+}
+

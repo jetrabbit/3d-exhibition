@@ -4,7 +4,14 @@
   --panel: rgba(22, 20, 18, 0.88);
   --line: rgba(241, 234, 217, 0.16);
   --accent: #c9b27a;
+  --disco-orange: #d7522c;
+  --disco-speech: #CFD5BF;
+  --intellect: #5CC1D7;
+  --psyche: #7556CF;
+  --physique: #CB476A;
+  --motorics: #E3B734;
   --serif: "Noto Serif TC", "Libre Baskerville", serif;
+  --disco-font: "Spectral", "Noto Serif TC", "Libre Baskerville", serif;
   --display: "Libre Baskerville", "Noto Serif TC", serif;
 }
 * { box-sizing: border-box; }
@@ -83,39 +90,159 @@ body.ready #loading { display: none; }
 #list .n { font-family: var(--display); color: var(--muted); font-size: 13px; padding-top: 2px; }
 #list small { display: block; font-family: var(--display); font-style: italic; color: var(--muted); font-size: 12px; }
 
-/* 展品說明：對話介面 */
+/* ───────── 展品說明：Speech Cabinet / Disco Elysium 風格對話捲軸 ───────── */
 #info {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); z-index: 9;
-  background: linear-gradient(90deg, rgba(14,13,12,0) 0%, rgba(14,13,12,.9) 9%, rgba(14,13,12,.97) 100%);
-  padding: 22px 28px 18px 48px; transform: translateX(105%); transition: transform .4s ease;
+  background: #0d0d0c;
+  border-left: 2px solid #2b2925;
+  box-shadow: -18px 0 48px rgba(0, 0, 0, 0.85), inset 1px 0 0 rgba(207, 213, 191, 0.14);
+  transform: translateX(105%); transition: transform .38s cubic-bezier(.16, 1, .3, 1);
   display: flex; flex-direction: column;
+  font-family: var(--disco-font);
+  overflow: hidden;
 }
 #info.open { transform: none; }
-.info-head { display: flex; justify-content: space-between; align-items: center; }
-#info-hall { font-family: var(--display); font-size: 12px; letter-spacing: .12em; color: var(--accent); }
-#info-close { background: none; border: 0; font-size: 20px; padding: 4px 8px; }
-#info-subject { padding: 12px 0 14px; border-bottom: 1px solid var(--line); }
-#info-no { font-family: var(--display); color: var(--muted); font-size: 13px; }
-#info-zh { font-size: 24px; margin: 4px 0 2px; line-height: 1.35; }
-#info-title { font-family: var(--display); font-style: italic; font-weight: 400; font-size: 15px; color: var(--muted); margin: 0; }
-#log {
-  flex: 1; overflow-y: auto; padding: 14px 6px 8px 0; font-size: 16px; line-height: 1.85;
-  mask-image: linear-gradient(transparent 0, #000 60px); -webkit-mask-image: linear-gradient(transparent 0, #000 60px);
+
+/* 仿 Speech Cabinet 垂直打字紙捲材質層 (.tape-background) */
+#info-tape {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-color: #111210;
+  background-image:
+    radial-gradient(ellipse at 50% 30%, rgba(44, 46, 40, 0.28) 0%, rgba(10, 10, 9, 0.92) 85%),
+    repeating-linear-gradient(0deg, rgba(255, 250, 235, 0.018) 0px, rgba(255, 250, 235, 0.018) 1px, transparent 1px, transparent 4px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0px, transparent 14px, transparent calc(100% - 14px), rgba(0, 0, 0, 0.45) 100%);
+  background-size: 100% 240px, 100% 180px, 100% 100%;
+  transition: background-position-y .32s cubic-bezier(.1, .3, .7, .9);
 }
-#log .sep { text-align: center; font-size: 12px; color: var(--muted); letter-spacing: .1em; margin: 22px 0 12px; opacity: .7; }
-#log .line { margin: 0 0 14px; color: #e9e1cf; opacity: 0; transform: translateY(6px); transition: opacity .5s, transform .5s, color .5s; }
+#info-ashes {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 1; opacity: 0.75;
+}
+
+/* 頂部畫作封面與懸浮表現主義肖像 (18:25 比例) */
+.info-top { position: relative; z-index: 2; flex-shrink: 0; }
+#info-cover {
+  position: relative; width: 100%; height: 118px; background: #080807; overflow: hidden;
+  border-bottom: 1px solid rgba(207, 213, 191, 0.14);
+}
+#info-cover-canvas { width: 100%; height: 100%; object-fit: cover; display: block; filter: contrast(1.06) saturate(0.92); }
+.info-head {
+  position: absolute; top: 0; left: 0; right: 0; padding: 10px 14px 10px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: linear-gradient(180deg, rgba(8,8,7,0.82) 0%, rgba(8,8,7,0) 100%);
+}
+#info-hall {
+  font-family: var(--display); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent); text-shadow: 0 1px 4px #000;
+}
+#info-close {
+  background: rgba(15, 14, 13, 0.72); border: 1px solid rgba(207, 213, 191, 0.25);
+  color: #d4d4d8; font-size: 15px; width: 28px; height: 28px; display: grid; place-items: center;
+  transition: background .15s, color .15s, border-color .15s;
+}
+#info-close:hover { background: var(--disco-orange); border-color: #ff7f5c; color: #fff; }
+
+.info-hero {
+  display: flex; align-items: flex-end; gap: 16px;
+  padding: 0 22px 12px 22px; margin-top: -42px; position: relative; z-index: 3;
+  border-bottom: 1px solid rgba(207, 213, 191, 0.14);
+}
+#info-portrait-wrap {
+  width: 86px; aspect-ratio: 18 / 25; flex-shrink: 0; position: relative;
+  background: #141413; padding: 3px;
+  border: 1px solid rgba(207, 213, 191, 0.42);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+}
+#info-portrait { width: 100%; height: 100%; display: block; object-fit: cover; }
+#info-subject { flex: 1; min-width: 0; padding-bottom: 2px; }
+#info-no {
+  display: block; font-family: var(--display); color: #a1a1aa;
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+}
+#info-zh {
+  font-size: 20px; font-weight: 700; margin: 2px 0; line-height: 1.28;
+  color: #f4f1ea; letter-spacing: .02em;
+}
+#info-title {
+  font-family: var(--disco-font); font-style: italic; font-weight: 400;
+  font-size: 13.5px; color: #a1a1aa; margin: 0;
+}
+#info-speaker-tag {
+  margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent);
+}
+
+/* 對話捲軸區 (#log) — 仿 Speech Cabinet MessageView 凸排排版 */
+#log {
+  position: relative; z-index: 2;
+  flex: 1; overflow-y: auto; padding: 18px 24px 16px 26px;
+  font-size: 16.5px; line-height: 1.78;
+  mask-image: linear-gradient(transparent 0, #000 28px);
+  -webkit-mask-image: linear-gradient(transparent 0, #000 28px);
+  scrollbar-width: thin; scrollbar-color: rgba(207, 213, 191, 0.22) transparent;
+}
+#log::-webkit-scrollbar { width: 5px; }
+#log::-webkit-scrollbar-thumb { background: rgba(207, 213, 191, 0.22); }
+
+#log .sep {
+  text-align: center; font-family: var(--display); font-size: 11.5px;
+  color: #a1a1aa; letter-spacing: .18em; margin: 18px 0 14px;
+  padding: 5px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-transform: uppercase;
+}
+
+/* Speech Cabinet 經典凸排：pl-12 -ml-12，最新訊息 100% 亮、歷史訊息 60% 暗 */
+#log .line {
+  position: relative;
+  padding-left: 18px; margin: 0 0 16px;
+  color: #d4d4d8; /* text-zinc-300 */
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .25s linear, transform .3s cubic-bezier(.1, .3, .7, .9);
+}
 #log .line.in { opacity: 1; transform: none; }
-#log .line.old { color: #9d9584; }
-#log .line b { font-weight: 900; letter-spacing: .08em; }
-#log .line .dash { color: var(--muted); }
-#log .line.voice { font-style: italic; }
-#log .line.voice b::before { content: '〔'; } #log .line.voice b::after { content: '〕'; }
-#log .line.you b { color: var(--ink); }
-#log .line.you { color: #cfc7b5; }
-#choices { list-style: none; margin: 0; padding: 12px 0 4px; border-top: 1px solid var(--line); min-height: 60px; }
-#choices li { padding: 6px 8px; cursor: pointer; color: #e0c48f; font-size: 15.5px; line-height: 1.5; border-left: 2px solid transparent; transition: background .15s, color .15s; }
-#choices li:hover { background: rgba(241,234,217,.07); color: #fff2d6; border-left-color: var(--accent); }
-#choices .k { color: var(--muted); margin-right: 4px; font-family: var(--display); }
+#log .line.in.old { opacity: 0.56; }
+#log .line.in.old:hover { opacity: 0.88; }
+
+#log .line .speaker {
+  margin-left: -18px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+}
+#log .line .check {
+  color: #a1a1aa; /* text-zinc-400 */
+  font-weight: 400; font-size: 0.92em; letter-spacing: .03em;
+}
+#log .line .dash { color: #d4d4d8; font-weight: 400; }
+#log .line .speech-body { color: #e4e4e7; }
+#log .line.voice .speech-body { color: #d4d4d8; }
+#log .line.you .speaker { color: var(--disco-speech); }
+#log .line.you .speech-body { color: var(--disco-speech); }
+
+/* 底部編號回應選項（Disco Elysium 鏽橘色高光選項列） */
+#choices {
+  position: relative; z-index: 2;
+  list-style: none; margin: 0; padding: 12px 18px 16px 22px;
+  background: linear-gradient(180deg, rgba(13, 13, 12, 0.86) 0%, rgba(18, 17, 15, 0.98) 100%);
+  border-top: 1px solid rgba(207, 213, 191, 0.18);
+  min-height: 68px;
+}
+#choices li {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 6px 10px; margin-bottom: 3px; cursor: pointer;
+  color: #e36846; font-size: 15.5px; line-height: 1.48;
+  border-left: 3px solid transparent;
+  transition: background .12s, color .12s, border-color .12s, transform .12s;
+}
+#choices li:last-child { margin-bottom: 0; }
+#choices li .k {
+  color: #f0ede6; font-weight: 700; font-family: var(--disco-font);
+  flex-shrink: 0; min-width: 24px;
+}
+#choices li:hover {
+  background: var(--disco-orange);
+  color: #ffffff;
+  border-left-color: #f4f1ea;
+}
+#choices li:hover .k { color: #ffffff; }
 
 /* 開場 */
 #intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(12,11,10,.78); backdrop-filter: blur(6px); padding: 16px; transition: opacity .5s; }
@@ -143,6 +270,8 @@ body.ready #loading { display: none; }
   #minimap { width: 180px; height: 54px; }
   #toolbar { bottom: 12px; gap: 4px; padding: 6px; }
   #toolbar button { padding: 7px 9px; font-size: 13px; }
+  #info-cover { height: 92px; }
+  #info-portrait-wrap { width: 68px; }
 }
 
 @media (min-width: 900px) {
