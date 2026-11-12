@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elysium 背景故事展</title>
+<meta name="description" content="以《Disco Elysium》世界觀為主題的 3D 虛擬策展：世界、歷史、馬汀內斯。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="grain"></div>
+
+<!-- 頂部：展廳名稱 -->
+<header id="hall-label"></header>
+
+<!-- 右上：小地圖 -->
+<aside id="map-wrap">
+  <div class="map-title">展場平面圖 <small>點擊地圖可移動</small></div>
+  <canvas id="minimap" width="296" height="88"></canvas>
+  <div class="legend">I 世界 → II 歷史 → III 馬汀內斯</div>
+</aside>
+
+<!-- 下方工具列 -->
+<nav id="toolbar">
+  <button id="btn-tour">▶ 自動導覽</button>
+  <button id="btn-list">☰ 展品列表</button>
+  <button id="btn-sound">♪ 環境音：開</button>
+  <button id="btn-help">？ 策展說明</button>
+  <button id="btn-full">⛶ 全螢幕</button>
+  <div id="tour-track"><div id="tour-bar"></div></div>
+</nav>
+<div id="hint">拖曳滑鼠環顧 · WASD / 方向鍵移動 · Shift 加速 · 點擊展品閱讀</div>
+
+<!-- 手機方向鍵 -->
+<div id="pad">
+  <button data-key="ArrowUp">▲</button>
+  <button data-key="ArrowLeft">◀</button>
+  <button data-key="ArrowDown">▼</button>
+  <button data-key="ArrowRight">▶</button>
+</div>
+
+<!-- 展品列表 -->
+<aside id="list">
+  <h3>展品列表</h3>
+  <ul id="list-items"></ul>
+</aside>
+
+<!-- 展品說明 -->
+<article id="info">
+  <div class="info-head">
+    <div id="info-hall"></div>
+    <button id="info-close" aria-label="關閉">✕</button>
+  </div>
+  <div id="info-no"></div>
+  <h2 id="info-title"></h2>
+  <h1 id="info-zh"></h1>
+  <div id="info-body"></div>
+  <div class="info-nav">
+    <button id="info-prev">← 上一件</button>
+    <button id="info-next">下一件 →</button>
+  </div>
+</article>
+
+<!-- 開場：策展論述 -->
+<section id="intro">
+  <div class="card">
+    <div class="kicker">3D VIRTUAL EXHIBITION · 虛擬策展</div>
+    <h1>ELYSIUM<span>一座世界的背景故事</span></h1>
+    <div class="statement">
+      <p>《Disco Elysium》的故事從一個宿醉、失憶的警探醒來開始——他忘了自己是誰，也忘了整個世界。玩家必須和他一起，從零開始重新認識這個地方。</p>
+      <p>本展借用這種「重新認識世界」的體驗，帶領觀眾依序走過三個展廳：</p>
+      <ol>
+        <li><b>HALL I · 世界：島嶼與灰域</b>　這個世界由什麼構成？</li>
+        <li><b>HALL II · 歷史：無罪者與革命</b>　瑞瓦肖這座城市如何走到今天？</li>
+        <li><b>HALL III · 馬汀內斯：此時此地</b>　故事開始的地方。</li>
+      </ol>
+      <p class="note">本展只介紹世界觀與開場資訊，不涉及主線劇情真相，未玩過遊戲也可安心觀展。<br>
+      所有展品畫面、模型與文字皆為策展人原創詮釋，未使用遊戲素材。<br>
+      《Disco Elysium》© ZA/UM。本展為非營利課堂作業之二次創作。</p>
+    </div>
+    <div class="controls">
+      <span>🖱 拖曳環顧</span><span>⌨ WASD 移動</span><span>👆 點擊展品</span><span>🗺 點地圖瞬移</span>
+    </div>
+    <div class="actions">
+      <button id="enter-tour" class="primary">▶ 跟著導覽參觀</button>
+      <button id="enter">自由漫遊</button>
+    </div>
+  </div>
+</section>
+
+<div id="loading">展場佈置中…</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
