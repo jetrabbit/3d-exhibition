@@ -7,7 +7,7 @@
 <meta name="description" content="以《Disco Elysium》世界觀為主題的 2.5D 虛擬策展。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;900&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <!-- base.css：版面與定位（不建議修改）；theme.css：外觀（可以自由修改） -->
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="theme.css">
@@ -42,15 +42,28 @@
   <ul id="list-items"></ul>
 </aside>
 
-<!-- 右側：敘事欄 -->
+<!-- 右側：敘事欄（移植自 tm-a-t/speech-cabinet） -->
 <article id="dlg" class="dlg">
+  <div id="dlg-tape" class="dlg-tape"></div>
+  <canvas id="dlg-ashes" class="dlg-ashes" width="480" height="960"></canvas>
   <header class="dlg-head">
     <div id="dlg-hall" class="dlg-hall"></div>
     <button id="dlg-close" class="dlg-close" aria-label="關閉">✕</button>
   </header>
-  <div class="dlg-subject">
-    <h1 id="dlg-title" class="dlg-title"></h1>
-    <div id="dlg-sub" class="dlg-sub"></div>
+  <div class="dlg-hero">
+    <div id="dlg-portrait-box" class="dlg-portrait-box">
+      <img id="dlg-portrait-img" src="../public/portraits/Encyclopedia.png" alt="">
+      <img id="dlg-portrait-frame" src="../public/layout/frame.png" alt="">
+    </div>
+    <div class="dlg-subject">
+      <h1 id="dlg-title" class="dlg-title"></h1>
+      <div id="dlg-sub" class="dlg-sub"></div>
+    </div>
+  </div>
+  <div id="dlg-check-overlay" class="dlg-check-overlay is-hidden" aria-hidden="true">
+    <img id="dlg-check-bg" src="../public/effects/check-success-background.png" alt="">
+    <div id="dlg-dice-strip" class="dlg-dice-strip"></div>
+    <img id="dlg-check-text" src="../public/effects/check-success.svg" alt="">
   </div>
   <div id="dlg-log" class="dlg-log"></div>
   <ol id="dlg-choices" class="dlg-choices"></ol>

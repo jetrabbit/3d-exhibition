@@ -305,10 +305,37 @@ export const VOICE_COLORS = {
 };
 
 export const VOICE_META = {
-  記憶: { en: 'ENCYCLOPEDIA', attr: 'intellect' },
-  直覺: { en: 'SHIVERS', attr: 'physique' },
-  懷疑: { en: 'RHETORIC', attr: 'motorics' },
-  想像: { en: 'INLAND EMPIRE', attr: 'psyche' },
+  記憶: { en: 'ENCYCLOPEDIA', attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' },
+  直覺: { en: 'SHIVERS', attr: 'physique', portrait: 'public/portraits/Shivers.png', sound: 'public/sounds/physique.mp3' },
+  懷疑: { en: 'RHETORIC', attr: 'motorics', portrait: 'public/portraits/Rhetoric.png', sound: 'public/sounds/motorics.mp3' },
+  想像: { en: 'INLAND EMPIRE', attr: 'psyche', portrait: 'public/portraits/Inland empire.png', sound: 'public/sounds/psyche.mp3' },
+};
+
+// 各展品導覽員預設對應的 Speech Cabinet 肖像（百科全書、邏輯、概念化、視覺演算、共情等）
+export const EXHIBIT_PORTRAITS = {
+  '1-0': 'public/portraits/Conceptualization.png',
+  '1-1': 'public/portraits/Encyclopedia.png',
+  '1-2': 'public/portraits/Inland empire.png',
+  '1-3': 'public/portraits/Volition.png',
+  '1-4': 'public/portraits/Visual Calculus.png',
+  '1-5': 'public/portraits/Shivers.png',
+  '2-T1': 'public/portraits/Encyclopedia.png',
+  '2-T2': 'public/portraits/Rhetoric.png',
+  '2-T3': 'public/portraits/Rhetoric.png',
+  '2-T4': 'public/portraits/Half Light.png',
+  '2-T5': 'public/portraits/Volition.png',
+  '2-T6': 'public/portraits/Logic.png',
+  '2-T7': 'public/portraits/Shivers.png',
+  '2-1': 'public/portraits/Encyclopedia.png',
+  '2-2': 'public/portraits/Empathy.png',
+  '2-3': 'public/portraits/Rhetoric.png',
+  '2-4': 'public/portraits/Perception.png',
+  '3-1': 'public/portraits/Shivers.png',
+  '3-2': 'public/portraits/Visual Calculus.png',
+  '3-3': 'public/portraits/Kim Kitsuragi.png',
+  '3-4': 'public/portraits/Esprit de Corps.png',
+  '3-5': 'public/portraits/Rhetoric.png',
+  '3-6': 'public/portraits/Inland empire.png',
 };
 
 export const VOICES = {

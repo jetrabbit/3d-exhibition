@@ -1,17 +1,18 @@
 /* ─────────────────────────────────────────────
-   theme.css：介面外觀。這個檔案可以自由修改。
+   theme.css：介面外觀（直接採用 tm-a-t/speech-cabinet 材質與排版）。
    各元素位置請見 THEME.md。
    ───────────────────────────────────────────── */
 :root {
-  --ink: #ece4d2;          /* 主要文字 */
-  --ink-old: #8f877a;      /* 已讀（較舊）的對話 */
-  --muted: #a39a88;        /* 次要文字 */
+  --ink: #d4d4d8;          /* 主要文字 (speech-cabinet text-zinc-300) */
+  --ink-old: rgba(212, 212, 216, 0.58); /* 已讀（較舊）的對話 (opacity-60) */
+  --muted: #a1a1aa;        /* 次要文字 (text-zinc-400) */
   --bg: #11100e;           /* 面板底色 */
-  --line: rgba(236, 228, 210, .14);
-  --choice: #d9b97c;       /* 選項文字 */
-  --choice-hover: #fff1d0;
+  --line: rgba(207, 213, 191, .16);
+  --choice: #e36846;       /* Disco 鏽橘紅選項文字 */
+  --choice-hover: #ffffff;
+  --disco-orange: #d7522c;
   --hall-accent: #c9b27a;  /* 會隨展廳自動改變 */
-  --serif: "Noto Serif TC", "Libre Baskerville", serif;
+  --serif: "Spectral", "Noto Serif TC", "Libre Baskerville", serif;
   --display: "Libre Baskerville", "Noto Serif TC", serif;
 }
 
@@ -19,20 +20,21 @@ body { background: #0f0e0d; color: var(--ink); font-family: var(--serif); }
 .loading { background: #0f0e0d; color: var(--muted); letter-spacing: .3em; }
 
 /* 按鈕 */
-.btn { background: rgba(17, 16, 14, .82); border: 1px solid var(--line); color: var(--ink); padding: 7px 12px; font-size: 13px; letter-spacing: .04em; }
-.btn:hover { border-color: var(--hall-accent); }
-.btn.is-on, .btn--primary { background: var(--hall-accent); color: #14120f; border-color: var(--hall-accent); }
+.btn { background: rgba(17, 16, 14, .88); border: 1px solid var(--line); color: #f4f1ea; padding: 7px 12px; font-size: 13px; letter-spacing: .04em; }
+.btn:hover { border-color: var(--hall-accent); background: rgba(241, 234, 217, .12); }
+.btn.is-on, .btn--primary { background: var(--hall-accent); color: #14120f; border-color: var(--hall-accent); font-weight: 600; }
 
-/* 狀態卡 */
-.status-card { background: rgba(17, 16, 14, .85); border: 1px solid var(--line); padding: 10px 14px 10px 10px; }
-.status-portrait { width: 54px; height: 66px; background:
-  radial-gradient(ellipse 30% 22% at 50% 34%, #c9a58a 60%, transparent 62%),
-  radial-gradient(ellipse 48% 40% at 50% 100%, #3b3a33 70%, transparent 72%),
-  linear-gradient(#3a4644, #1c201f); border: 1px solid var(--line); }
+/* 左下狀態卡：使用 Speech Cabinet You.png 肖像 */
+.status-card { background: rgba(17, 16, 14, .92); border: 1px solid var(--line); padding: 10px 14px 10px 10px; box-shadow: 0 8px 24px rgba(0,0,0,.65); }
+.status-portrait {
+  width: 54px; height: 75px;
+  background: url("../public/portraits/You.png") center / cover no-repeat;
+  border: 1px solid rgba(207, 213, 191, .35);
+}
 .status-name { font-size: 11px; letter-spacing: .14em; color: var(--muted); }
 .status-hall { font-family: var(--display); font-weight: 700; color: var(--hall-accent); font-size: 14px; letter-spacing: .1em; margin-top: 2px; }
-.status-hall-zh { font-size: 14px; }
-.status-clock { font-family: var(--display); font-size: 22px; margin-top: 4px; letter-spacing: .02em; }
+.status-hall-zh { font-size: 14px; color: #f4f1ea; }
+.status-clock { font-family: var(--display); font-size: 22px; margin-top: 4px; letter-spacing: .02em; color: #f4f1ea; }
 
 .hint { font-size: 12px; color: var(--muted); text-shadow: 0 1px 3px #000; }
 
@@ -43,30 +45,129 @@ body { background: #0f0e0d; color: var(--ink); font-family: var(--serif); }
 .list-item:hover { background: rgba(236, 228, 210, .07); }
 .list-no { font-family: var(--display); color: var(--muted); font-size: 12px; margin-right: 6px; }
 
-/* 敘事欄 */
-.dlg { background: linear-gradient(90deg, rgba(10, 9, 8, 0) 0, rgba(10, 9, 8, .92) 40px, rgba(10, 9, 8, .97) 100%); padding: 20px 28px 16px 56px; }
-.dlg-hall { font-family: var(--display); font-size: 11px; letter-spacing: .16em; color: var(--hall-accent); }
-.dlg-close { background: none; border: 0; font-size: 18px; color: var(--muted); }
-.dlg-subject { padding: 10px 0 12px; border-bottom: 1px solid var(--line); }
-.dlg-title { font-size: 22px; margin: 0; line-height: 1.35; }
-.dlg-sub { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--muted); margin-top: 2px; }
+/* ───────── 右側敘事欄：直接移植自 tm-a-t/speech-cabinet ───────── */
+.dlg {
+  background: #141413;
+  box-shadow: -20px 0 54px rgba(0, 0, 0, .9);
+  padding: 0;
+  overflow: hidden;
+  width: min(460px, 100vw);
+}
+.dlg-tape {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: url("../public/layout/bg.png") repeat-y top center;
+  background-size: 100% auto;
+  transition: background-position-y .3s cubic-bezier(.1, .3, .7, .9);
+}
+.dlg-ashes {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 1;
+}
+.dlg-head {
+  position: relative; z-index: 3;
+  padding: 14px 20px 6px 32px;
+  background: linear-gradient(180deg, rgba(10,10,9,.88) 0%, rgba(10,10,9,0) 100%);
+}
+.dlg-hall { font-family: var(--display); font-size: 11px; letter-spacing: .16em; color: var(--hall-accent); text-transform: uppercase; }
+.dlg-close {
+  background: rgba(15, 14, 13, .78); border: 1px solid rgba(207, 213, 191, .3);
+  font-size: 15px; color: var(--ink); width: 28px; height: 28px; display: grid; place-items: center;
+}
+.dlg-close:hover { background: var(--disco-orange); color: #fff; border-color: #fff; }
 
-.dlg-log { padding: 16px 6px 8px 0; font-size: 16.5px; line-height: 1.8;
-  -webkit-mask-image: linear-gradient(transparent 0, #000 70px); mask-image: linear-gradient(transparent 0, #000 70px); }
-.dlg-log .sep { text-align: center; font-family: var(--display); font-size: 11px; color: var(--muted); letter-spacing: .2em; margin: 26px 0 14px; opacity: .6; }
-.line { margin: 0 0 14px; color: var(--ink); }
-.line.is-old { color: var(--ink-old); }
-.line .who { font-weight: 900; letter-spacing: .1em; color: var(--who, var(--ink)); }
-.line .dash { color: var(--muted); }
-.line--narration .text { color: #bdb4a2; }               /* 旁白：沒有說話者 */
-.line--narration.is-old .text { color: #7a7366; }
-.line--voice .text { font-style: italic; }                /* 內心聲音 */
-.line--you .who { color: var(--ink); }                     /* 你 */
+.dlg-hero {
+  position: relative; z-index: 3;
+  display: flex; align-items: flex-end; gap: 14px;
+  padding: 4px 28px 12px 26px;
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+}
+.dlg-portrait-box {
+  position: relative; width: 104px; aspect-ratio: 18 / 25; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#dlg-portrait-img {
+  position: absolute; width: calc(100% - 14px); aspect-ratio: 18 / 25;
+  object-fit: cover; display: block;
+}
+#dlg-portrait-frame {
+  position: absolute; top: 50%; left: 0; width: 100%;
+  transform: translateY(-50%); pointer-events: none; z-index: 2;
+}
+.dlg-subject { flex: 1; min-width: 0; padding-bottom: 4px; border: 0; }
+.dlg-title { font-size: 20px; font-weight: 700; margin: 0; line-height: 1.28; color: #fafafa; }
+.dlg-sub { font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--muted); margin-top: 3px; }
 
-.dlg-choices { padding: 12px 0 4px; border-top: 1px solid var(--line); min-height: 64px; }
-.choice { padding: 5px 8px; color: var(--choice); font-size: 15.5px; line-height: 1.5; border-left: 2px solid transparent; }
-.choice:hover { color: var(--choice-hover); background: rgba(236, 228, 210, .06); border-left-color: var(--hall-accent); }
-.choice-key { color: var(--muted); font-family: var(--display); margin-right: 2px; }
+/* 主動檢定擲骰覆蓋層 */
+.dlg-check-overlay {
+  position: absolute; inset: 0; z-index: 50;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  pointer-events: none;
+}
+.dlg-check-overlay.is-hidden { display: none; }
+#dlg-check-bg {
+  position: absolute; bottom: 0; left: 0; width: 100%; z-index: -1;
+  transition: opacity .7s .2s ease-in;
+}
+.dlg-dice-strip {
+  display: flex; height: 110px; align-items: center; justify-content: center; gap: 12px;
+  transition: opacity .4s .5s ease-in;
+}
+.dlg-dice-strip svg { width: 70px; height: 70px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.85)); }
+#dlg-check-text {
+  margin-bottom: 110px; height: 36px;
+  transition: all .3s .5s ease-in;
+}
+.dlg-check-overlay.fade-out #dlg-check-bg,
+.dlg-check-overlay.fade-out .dlg-dice-strip { opacity: 0; }
+.dlg-check-overlay.fade-out #dlg-check-text { transform: translateX(180px); opacity: 0; }
+
+/* 對話紀錄區（對齊 bg.png 膠卷邊框內側） */
+.dlg-log {
+  position: relative; z-index: 2;
+  padding: 12px 34px 16px 34px; font-size: 17px; line-height: 1.74;
+  -webkit-mask-image: linear-gradient(transparent 0, #000 24px); mask-image: linear-gradient(transparent 0, #000 24px);
+}
+.dlg-log .sep {
+  text-align: center; font-family: var(--display); font-size: 11.5px; color: var(--muted);
+  letter-spacing: .18em; margin: 18px 0 12px; padding: 4px 0;
+  border-top: 1px solid rgba(255,255,255,.1); border-bottom: 1px solid rgba(255,255,255,.1);
+}
+/* Speech Cabinet 凸排 (pl-12 -ml-12) */
+.line {
+  padding-left: 22px; margin: 16px 0 0; color: var(--ink);
+}
+.line.is-old { opacity: 0.6; }
+.line.is-old:hover { opacity: 0.92; }
+.line .who {
+  margin-left: -22px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--who, var(--ink));
+}
+.line .check { color: var(--muted); font-weight: 400; }
+.line .dash { color: var(--ink); }
+.line--narration { padding-left: 0; }
+.line--narration .text { color: #bdb4a2; font-style: italic; }
+.line--you .who, .line--you .text { color: #CFD5BF; }
+
+.dlg-choices {
+  position: relative; z-index: 3;
+  padding: 10px 30px 14px 32px;
+  background: linear-gradient(180deg, rgba(16, 16, 15, .86) 0%, rgba(16, 16, 15, .98) 100%);
+  border-top: 1px solid rgba(207, 213, 191, .18); min-height: 68px;
+}
+.choice {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 5px 10px; margin-bottom: 3px; color: var(--choice); font-size: 15.5px; line-height: 1.48;
+  border-left: 3px solid transparent; transition: background .12s, color .12s, border-color .12s;
+}
+.choice.choice--check {
+  background: rgba(244, 241, 234, .08); border: 1px solid rgba(244, 241, 234, .45);
+  border-left: 3px solid #f4f1ea; color: #f4f1ea; margin: 4px 0;
+}
+.choice:hover, .choice.choice--check:hover {
+  color: var(--choice-hover); background: var(--disco-orange); border-color: #f4f1ea;
+}
+.choice-key { color: #f0ede6; font-weight: 700; font-family: var(--serif); flex-shrink: 0; min-width: 24px; }
+.choice:hover .choice-key { color: #fff; }
 
 /* 開場 */
 .intro { background: rgba(8, 7, 6, .82); }
@@ -80,5 +181,6 @@ body { background: #0f0e0d; color: var(--ink); font-family: var(--serif); }
 @media (max-width: 700px) {
   .intro-card { padding: 22px 20px; }
   .intro-title { font-size: 36px; }
-  .dlg { padding: 16px 18px 12px 22px; background: rgba(10, 9, 8, .96); }
+  .dlg-portrait-box { width: 80px; }
+  .dlg-log { padding: 10px 26px 12px 26px; }
 }

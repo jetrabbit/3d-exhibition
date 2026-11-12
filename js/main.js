@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { HALLS, EXHIBITS, VOICES, VOICE_COLORS, VOICE_META } from './exhibits.js';
-import { paintedSurface, panelTexture, plaqueTexture, signTexture, drawCover, drawPortrait } from './art.js';
+import { HALLS, EXHIBITS, VOICES, VOICE_COLORS, VOICE_META, EXHIBIT_PORTRAITS } from './exhibits.js';
+import { paintedSurface, panelTexture, plaqueTexture, signTexture, drawCover } from './art.js';
 import { buildModel, plinth } from './models.js';
 
 const W = 22, HALF = W / 2, H = 6, Z_END = -74, DOOR = 2.6;
@@ -298,65 +298,143 @@ function updateTour(dt) {
 }
 const holdFor = (text) => Math.max(5, Math.min(14, text.length / 14));
 
-// ───────── UI（Speech Cabinet / Disco Elysium 風格對話捲軸）─────────
+// ───────── UI（直接移植自 tm-a-t/speech-cabinet Player & MessageView & ActiveCheckDiceStrip）─────────
 const $ = (s) => document.querySelector(s);
 const info = $('#info');
-const logEl = $('#log'), choicesEl = $('#choices');
+const logEl = $('#log'), messagesEl = $('#messages'), choicesEl = $('#choices');
 const coverCanvas = $('#info-cover-canvas');
-const portraitCanvas = $('#info-portrait');
-const speakerTagEl = $('#info-speaker-tag');
-const tapeEl = $('#info-tape');
-let current = null, step = 0, tapePos = 0;
+const portraitImg = $('#sc-portrait-img');
+const tapeEl = $('#tape-background');
+const checkOverlay = $('#sc-check-overlay');
+const checkBgImg = $('#sc-check-bg');
+const checkTextImg = $('#sc-check-text');
+const diceStripEl = $('#sc-dice-strip');
+let current = null, step = 0, tapePos = 0, voiceRolled = false;
 const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-function rollTape(delta = 48) {
-  tapePos += delta;
-  if (tapeEl) tapeEl.style.backgroundPositionY = `-${tapePos}px`;
+// 移植自 speech-cabinet/src/components/active-check-dice.tsx
+const PIP_LAYOUT_BY_VALUE = [
+  [[48, 48]],
+  [[28, 28], [68, 68]],
+  [[28, 28], [48, 48], [68, 68]],
+  [[28, 28], [68, 28], [28, 68], [68, 68]],
+  [[28, 28], [68, 28], [48, 48], [28, 68], [68, 68]],
+  [[28, 24], [28, 48], [28, 72], [68, 24], [68, 48], [68, 72]],
+];
+
+function renderPipDie(value) {
+  const v = value >= 1 && value <= 6 ? value : 1;
+  const pips = PIP_LAYOUT_BY_VALUE[v - 1];
+  const circles = pips.map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" r="8" fill="white" />`).join('');
+  return `<svg viewBox="0 0 96 96" class="sc-pip-die" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="2.5" y="2.5" width="91" height="91" rx="13.5" fill="none" stroke="white" stroke-width="5" />
+    ${circles}
+  </svg>`;
 }
 
-function updatePortrait(kind, label, color, seedKey) {
-  if (!portraitCanvas) return;
-  const accent = current ? hallOf(current.hall).palette.accent : '#c9b27a';
-  drawPortrait(portraitCanvas, kind, accent, seedKey || (current ? current.id : 'docent'));
-  if (speakerTagEl) {
-    speakerTagEl.textContent = label;
-    speakerTagEl.style.color = color || 'var(--accent)';
+function rollTape(delta = 84, rolling = false) {
+  tapePos += delta;
+  if (!tapeEl) return;
+  tapeEl.style.transition = rolling
+    ? 'background-position-y 1s ease-in-out'
+    : 'background-position-y .3s cubic-bezier(.1, .3, .7, .9)';
+  tapeEl.style.backgroundPositionY = `-${tapePos}px`;
+}
+
+function setPortrait(url) {
+  if (!portraitImg || !url) return;
+  if (portraitImg.getAttribute('src') !== url) {
+    portraitImg.src = url;
   }
 }
 
-function say(who, text, { cls = '', color = '', check = '', kind = 'docent' } = {}) {
-  logEl.querySelectorAll('.line').forEach((l) => l.classList.add('old'));
+// 移植自 speech-cabinet/src/components/player/message-view.tsx
+function say(who, text, { cls = '', color = '', check = '', portrait = '' } = {}) {
+  messagesEl.querySelectorAll('.sc-msg').forEach((l) => l.classList.add('old'));
   const d = document.createElement('div');
-  d.className = `line ${cls}`.trim();
-  const checkHtml = check ? `<span class="check"> [${esc(check)}]</span>` : '';
-  d.innerHTML = `<span class="speaker" style="${color ? `color:${color}` : ''}">${esc(who)}</span>${checkHtml}<span class="dash"> &ndash; </span><span class="speech-body">${esc(text).replace(/\n/g, '<br>')}</span>`;
-  logEl.appendChild(d);
-  rollTape(54);
-  updatePortrait(kind, who, color, `${current ? current.id : 'x'}-${kind}`);
+  d.className = `sc-msg ${cls}`.trim();
+  const checkHtml = check ? `<span class="sc-check"> [${esc(check)}]</span>` : '';
+  d.innerHTML = `<span class="sc-speaker" style="${color ? `color:${color}` : ''}">${esc(who)}</span>${checkHtml}<span class="sc-dash"> &ndash; </span><span class="sc-text">${esc(text).replace(/\n/g, '<br>')}</span>`;
+  messagesEl.appendChild(d);
+  rollTape(88, false);
+  if (portrait) setPortrait(portrait);
   requestAnimationFrame(() => d.classList.add('in'));
   logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
 }
 
 const docent = (t) => {
-  audio.chime('docent');
-  say('CURATOR · 導覽員', t, { cls: 'docent', color: 'var(--accent)', kind: 'docent' });
+  const p = (current && EXHIBIT_PORTRAITS[current.id]) || 'public/portraits/Encyclopedia.png';
+  say('CURATOR · 導覽員', t, { cls: 'docent', color: 'var(--accent)', portrait: p });
 };
+
+// 主動技能檢定（移植自 speech-cabinet Player.tsx isActiveCheck 流程：捲軸快轉 + 雙骰 + 成功/失敗橫幅 + 音效）
+function runActiveCheck(v) {
+  if (!v || !current) return;
+  const ex = current;
+  const [vName, vText, vCheck] = v;
+  const meta = VOICE_META[vName] || { en: vName, attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' };
+  const isFailure = (vCheck || '').includes('Failure');
+  const [die1, die2] = isFailure ? [2, 1] : [5, 6];
+
+  choicesEl.innerHTML = '';
+  audio.playMp3(isFailure ? 'public/sounds/failure.mp3' : 'public/sounds/success.mp3');
+
+  // 1. 紙捲高速滾動 (tapeIsRolling)
+  messagesEl.classList.add('tape-rolling');
+  rollTape(1100, true);
+
+  // 2. 顯示雙骰與檢定背景特效
+  if (checkOverlay) {
+    checkBgImg.src = isFailure ? 'public/effects/check-failure-background.png' : 'public/effects/check-success-background.png';
+    checkTextImg.src = isFailure ? 'public/effects/check-failure.svg' : 'public/effects/check-success.svg';
+    diceStripEl.innerHTML = renderPipDie(die1) + renderPipDie(die2);
+    checkOverlay.classList.remove('hidden', 'fade-out');
+  }
+
+  setTimeout(() => {
+    if (current !== ex) return;
+    messagesEl.classList.remove('tape-rolling');
+    if (checkOverlay) checkOverlay.classList.add('fade-out');
+    audio.playMp3(meta.sound);
+    say(`${meta.en} (${vName})`, vText, {
+      cls: `voice text-${meta.attr}`,
+      color: VOICE_COLORS[vName],
+      check: vCheck || 'Medium: Success',
+      portrait: meta.portrait,
+    });
+    voiceRolled = true;
+    renderChoices();
+    setTimeout(() => {
+      if (checkOverlay) checkOverlay.classList.add('hidden');
+    }, 1100);
+  }, 1100);
+}
 
 function renderChoices() {
   choicesEl.innerHTML = '';
   if (!current) return;
   const opts = [];
-  if (step < current.body.length) opts.push(['"繼續說。" [Continue.]', cont]);
-  else opts.push(['"我明白了。帶我去下一件展品。"', goNext]);
-  if (step < current.body.length) opts.push(['"先帶我去下一件展品吧。"', goNext]);
-  opts.push(['"回到上一件展品。"', goPrev]);
+  if (step < current.body.length) opts.push(['"繼續說。" [Continue.]', cont, '']);
+  else opts.push(['"我明白了。帶我去下一件展品。"', goNext, '']);
+
+  const v = VOICES[current.id];
+  if (v && !voiceRolled) {
+    const [vName, , vCheck] = v;
+    const meta = VOICE_META[vName] || { en: vName };
+    const diff = (vCheck || 'Medium: Success').split(':')[0];
+    opts.push([`[${meta.en} · ${vName} — ${diff}] 傾聽腦海中的聲音（擲骰檢定）`, () => runActiveCheck(v), 'check-opt']);
+  }
+
+  if (step < current.body.length) opts.push(['"先帶我去下一件展品吧。"', goNext, '']);
+  opts.push(['"回到上一件展品。"', goPrev, '']);
   opts.push(['[Leave.]（轉身離開。）', () => {
-    audio.chime('you');
-    say('YOU · 你', '（你轉身離開。）', { cls: 'you', color: '#CFD5BF', kind: 'you' });
+    say('YOU', '（你轉身離開。）', { cls: 'you', color: '#CFD5BF', portrait: 'public/portraits/You.png' });
     setTimeout(closeInfo, 350);
-  }]);
-  opts.forEach(([t, fn], i) => {
+  }, '']);
+
+  opts.forEach(([t, fn, cls], i) => {
     const li = document.createElement('li');
+    if (cls) li.className = cls;
     li.innerHTML = `<span class="k">${i + 1}. -</span> <span class="opt-text">${esc(t)}</span>`;
     li.onclick = () => { stopTour(); fn(t); };
     choicesEl.appendChild(li);
@@ -364,8 +442,7 @@ function renderChoices() {
 }
 function cont(t = '"繼續說。"') {
   if (!current || step >= current.body.length) return;
-  audio.chime('you');
-  say('YOU · 你', t.replace(/ \[Continue\.\]$/, ''), { cls: 'you', color: '#CFD5BF', kind: 'you' });
+  say('YOU', t.replace(/ \[Continue\.\]$/, ''), { cls: 'you', color: '#CFD5BF', portrait: 'public/portraits/You.png' });
   const ex = current;
   setTimeout(() => { if (current !== ex) return; docent(ex.body[step++]); renderChoices(); }, 300);
   choicesEl.innerHTML = '';
@@ -373,8 +450,7 @@ function cont(t = '"繼續說。"') {
 const idx = (ex) => EXHIBITS.indexOf(ex);
 function goTo(ex, t) {
   if (t) {
-    audio.chime('you');
-    say('YOU · 你', t, { cls: 'you', color: '#CFD5BF', kind: 'you' });
+    say('YOU', t, { cls: 'you', color: '#CFD5BF', portrait: 'public/portraits/You.png' });
   }
   choicesEl.innerHTML = '';
   flyTo(ex, () => openInfo(ex, !!tour));
@@ -385,7 +461,7 @@ const goPrev = (t) => goTo(EXHIBITS[(idx(current) - 1 + EXHIBITS.length) % EXHIB
 function openInfo(ex, fromTour = false) {
   const hall = hallOf(ex.hall);
   const same = current === ex;
-  current = ex; step = 0;
+  current = ex; step = 0; voiceRolled = false;
   $('#info-hall').textContent = `HALL ${hall.no} · ${hall.zh}`;
   $('#info-no').textContent = `EXHIBIT № ${ex.no}`;
   $('#info-title').textContent = ex.title;
@@ -395,22 +471,24 @@ function openInfo(ex, fromTour = false) {
   info.classList.add('open');
   if (!same) {
     const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `— № ${ex.no} · ${ex.title.toUpperCase()} —`;
-    logEl.appendChild(sep);
+    messagesEl.appendChild(sep);
   }
   docent(ex.body[step++]);
   const v = VOICES[ex.id];
   if (v) {
     const [vName, vText, vCheck] = v;
-    const meta = VOICE_META[vName] || { en: vName, attr: 'intellect' };
+    const meta = VOICE_META[vName] || { en: vName, attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' };
     setTimeout(() => {
-      if (current !== ex) return;
-      audio.chime(meta.attr);
+      if (current !== ex || voiceRolled) return;
+      voiceRolled = true;
+      audio.playMp3(meta.sound);
       say(`${meta.en} (${vName})`, vText, {
-        cls: `voice attr-${meta.attr}`,
+        cls: `voice text-${meta.attr}`,
         color: VOICE_COLORS[vName],
         check: vCheck || 'Medium: Success',
-        kind: vName,
+        portrait: meta.portrait,
       });
+      renderChoices();
     }, 900);
   }
   renderChoices();
@@ -430,32 +508,37 @@ $('#btn-list').onclick = () => $('#list').classList.toggle('open');
 $('#btn-help').onclick = () => $('#intro').classList.remove('hidden');
 $('#btn-full').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.());
 
-// ───────── Speech Cabinet 漂浮灰燼粒子（AshesBackground）─────────
+// ───────── Speech Cabinet 漂浮灰燼粒子（移植自 ashes-background.tsx）─────────
 {
   const ashCanvas = $('#info-ashes');
   if (ashCanvas) {
     const actx = ashCanvas.getContext('2d');
     const AW = ashCanvas.width, AH = ashCanvas.height;
-    const ashes = Array.from({ length: 42 }, () => ({
-      x: Math.random() * AW,
+    const ashes = Array.from({ length: 64 }, () => ({
+      x: Math.random() * 2 * AW - 0.5 * AW,
       y: Math.random() * AH,
-      size: Math.random() * 2.2 + 1.4,
-      sx: (Math.random() + 0.15) * 0.45,
-      sy: -(Math.random() * 0.4 + 0.15),
-      alpha: Math.random() * 0.32 + 0.12,
+      size: Math.random() * 2 + 2,
+      sx: (Math.random() + 0.2) * 0.75,
+      sy: Math.random() * -0.4 - 0.15,
+      alpha: Math.random() * 0.4 + 0.2,
     }));
-    ctx.tick.push((t) => {
+    ctx.tick.push(() => {
       if (!info.classList.contains('open')) return;
       actx.clearRect(0, 0, AW, AH);
+      const wave = Math.sin(performance.now() / 1000) * 0.12;
       for (const a of ashes) {
-        a.x += a.sx + Math.sin(t + a.y * 0.01) * 0.12;
+        a.x += a.sx + wave;
         a.y += a.sy;
-        if (a.y < -10 || a.x > AW + 10) {
-          a.x = Math.random() * AW * 1.2 - AW * 0.2;
-          a.y = AH + 6;
+        if (a.alpha <= 0 || a.y < 0) {
+          a.x = Math.random() * 2 * AW - 0.5 * AW;
+          a.y = AH;
+          a.size = Math.random() * 2 + 2;
+          a.sx = (Math.random() + 0.2) * 0.75;
+          a.sy = Math.random() * -0.4 - 0.15;
+          a.alpha = Math.random() * 0.4 + 0.2;
         }
-        const al = a.alpha * ((a.y / AH + 0.35) / 1.35);
-        actx.fillStyle = `rgba(220, 161, 141, ${al.toFixed(3)})`;
+        const al = a.alpha * (a.y / AH + 0.4) / 1.4;
+        actx.fillStyle = `rgba(220, 161, 141, ${al})`;
         actx.beginPath();
         actx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
         actx.fill();
@@ -482,7 +565,7 @@ $('#btn-full').onclick = () => (document.fullscreenElement ? document.exitFullsc
 $('#enter').onclick = () => { $('#intro').classList.add('hidden'); audio.maybeStart(); };
 $('#enter-tour').onclick = () => { $('#intro').classList.add('hidden'); audio.maybeStart(); startTour(0); };
 
-// ───────── 環境音與技能檢定音效（即時合成，無音檔）─────────
+// ───────── 環境音與 Speech Cabinet 原始 MP3 音效（public/sounds/*.mp3）─────────
 const audio = (() => {
   let ac = null, gain = null, on = true;
   function start() {
@@ -505,29 +588,11 @@ const audio = (() => {
     src.connect(lp).connect(ng).connect(gain); src.start();
     gain.gain.linearRampToValueAtTime(0.6, ac.currentTime + 3);
   }
-  function chime(type) {
-    if (!on || !ac) return;
-    const now = ac.currentTime;
-    const tones = {
-      intellect: [523.25, 659.25], // 清亮雙音
-      psyche: [392.0, 493.88],     // 溫潤共鳴
-      physique: [196.0, 233.08],   // 低沉震動
-      motorics: [587.33, 880.0],   // 敏捷高音
-      docent: [329.63, 392.0],     // 機械紙捲推進聲
-      you: [261.63],               // 輕巧點擊
-    }[type] || [330];
-    tones.forEach((freq, i) => {
-      const o = ac.createOscillator();
-      const g = ac.createGain();
-      o.type = type === 'physique' ? 'triangle' : 'sine';
-      o.frequency.setValueAtTime(freq, now + i * 0.055);
-      g.gain.setValueAtTime(0.0001, now + i * 0.055);
-      g.gain.exponentialRampToValueAtTime(type === 'you' ? 0.025 : 0.045, now + i * 0.055 + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.055 + 0.28);
-      o.connect(g).connect(ac.destination);
-      o.start(now + i * 0.055);
-      o.stop(now + i * 0.055 + 0.3);
-    });
+  function playMp3(path) {
+    if (!on || !path) return;
+    const el = new Audio(path);
+    el.volume = 0.65;
+    el.play().catch(() => {});
   }
   const btn = $('#btn-sound');
   btn.onclick = () => {
@@ -535,7 +600,7 @@ const audio = (() => {
     if (on && !ac) start();
     if (gain) gain.gain.linearRampToValueAtTime(on ? 0.6 : 0, ac.currentTime + 0.6);
   };
-  return { maybeStart() { if (on && !ac) start(); }, chime };
+  return { maybeStart() { if (on && !ac) start(); }, playMp3 };
 })();
 
 // ───────── 小地圖 ─────────

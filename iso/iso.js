@@ -1,6 +1,6 @@
 // 2.5D 版本：固定斜俯視鏡頭、角色點地移動、右側敘事欄
 import * as THREE from 'three';
-import { HALLS, EXHIBITS, VOICES, VOICE_COLORS } from '../js/exhibits.js';
+import { HALLS, EXHIBITS, VOICES, VOICE_COLORS, VOICE_META, EXHIBIT_PORTRAITS } from '../js/exhibits.js';
 import { paintedSurface, panelTexture, plaqueTexture, signTexture, toTexture } from '../js/art.js';
 import { buildModel } from '../js/models.js';
 
@@ -298,11 +298,49 @@ function approach(ex) {
   });
 }
 
-// ───────── 敘事欄 ─────────
+// ───────── 敘事欄（直接移植自 tm-a-t/speech-cabinet）─────────
 const $ = (s) => document.querySelector(s);
 const dlg = $('#dlg'), logEl = $('#dlg-log'), choicesEl = $('#dlg-choices');
-let current = null, stepIdx = 0;
+const portraitImg = $('#dlg-portrait-img'), tapeEl = $('#dlg-tape');
+const checkOverlay = $('#dlg-check-overlay'), checkBgImg = $('#dlg-check-bg'), checkTextImg = $('#dlg-check-text'), diceStripEl = $('#dlg-dice-strip');
+let current = null, stepIdx = 0, tapePos = 0, voiceRolled = false;
 const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+const PIP_LAYOUT_BY_VALUE = [
+  [[48, 48]],
+  [[28, 28], [68, 68]],
+  [[28, 28], [48, 48], [68, 68]],
+  [[28, 28], [68, 28], [28, 68], [68, 68]],
+  [[28, 28], [68, 28], [48, 48], [28, 68], [68, 68]],
+  [[28, 24], [28, 48], [28, 72], [68, 24], [68, 48], [68, 72]],
+];
+function renderPipDie(value) {
+  const v = value >= 1 && value <= 6 ? value : 1;
+  const circles = PIP_LAYOUT_BY_VALUE[v - 1].map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" r="8" fill="white" />`).join('');
+  return `<svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="2.5" y="2.5" width="91" height="91" rx="13.5" fill="none" stroke="white" stroke-width="5" />
+    ${circles}
+  </svg>`;
+}
+function playMp3(path) {
+  if (!path) return;
+  const el = new Audio(`../${path}`);
+  el.volume = 0.65;
+  el.play().catch(() => {});
+}
+function rollTape(delta = 84, rolling = false) {
+  tapePos += delta;
+  if (!tapeEl) return;
+  tapeEl.style.transition = rolling
+    ? 'background-position-y 1s ease-in-out'
+    : 'background-position-y .3s cubic-bezier(.1, .3, .7, .9)';
+  tapeEl.style.backgroundPositionY = `-${tapePos}px`;
+}
+function setPortrait(relPath) {
+  if (!portraitImg || !relPath) return;
+  const url = `../${relPath}`;
+  if (portraitImg.getAttribute('src') !== url) portraitImg.src = url;
+}
 
 const NARRATION = {
   panel: ['你在展板前停下。燈光把畫布照得有點過亮，每一道筆觸都看得見。', '你湊近了一點。顏料的氣味，聞起來像是昨天才乾。', '一塊展板。身後好像有人咳了一聲——回頭時，什麼人也沒有。'],
@@ -312,39 +350,83 @@ const NARRATION = {
 let narrIdx = 0;
 const narrate = (ex) => { const pool = NARRATION[ex.kind] || NARRATION.object; return pool[(narrIdx++) % pool.length]; };
 
-function line(type, who, text, color) {
+function line(type, who, text, color, { check = '', portrait = '' } = {}) {
   logEl.querySelectorAll('.line').forEach((l) => l.classList.add('is-old'));
   const d = document.createElement('p');
   d.className = `line line--${type}`;
-  d.innerHTML = (who ? `<span class="who"${color ? ` style="--who:${color}"` : ''}>${esc(who)}</span><span class="dash"> – </span>` : '') +
+  const checkHtml = check ? `<span class="check"> [${esc(check)}]</span>` : '';
+  d.innerHTML = (who ? `<span class="who"${color ? ` style="--who:${color}"` : ''}>${esc(who)}</span>${checkHtml}<span class="dash"> &ndash; </span>` : '') +
     `<span class="text">${esc(text).replace(/\n/g, '<br>')}</span>`;
   logEl.appendChild(d);
+  rollTape(88, false);
+  if (portrait) setPortrait(portrait);
   requestAnimationFrame(() => d.classList.add('is-in'));
   logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+}
+
+function runActiveCheck(v) {
+  if (!v || !current) return;
+  const ex = current;
+  const [vName, vText, vCheck] = v;
+  const meta = VOICE_META[vName] || { en: vName, attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' };
+  const isFailure = (vCheck || '').includes('Failure');
+  const [die1, die2] = isFailure ? [2, 1] : [5, 6];
+
+  choicesEl.innerHTML = '';
+  playMp3(isFailure ? 'public/sounds/failure.mp3' : 'public/sounds/success.mp3');
+  rollTape(1100, true);
+
+  if (checkOverlay) {
+    checkBgImg.src = `../public/effects/${isFailure ? 'check-failure-background.png' : 'check-success-background.png'}`;
+    checkTextImg.src = `../public/effects/${isFailure ? 'check-failure.svg' : 'check-success.svg'}`;
+    diceStripEl.innerHTML = renderPipDie(die1) + renderPipDie(die2);
+    checkOverlay.classList.remove('is-hidden', 'fade-out');
+  }
+
+  setTimeout(() => {
+    if (current !== ex) return;
+    if (checkOverlay) checkOverlay.classList.add('fade-out');
+    playMp3(meta.sound);
+    line('voice', `${meta.en} (${vName})`, vText, VOICE_COLORS[vName], {
+      check: vCheck || 'Medium: Success',
+      portrait: meta.portrait,
+    });
+    voiceRolled = true;
+    renderChoices();
+    setTimeout(() => { if (checkOverlay) checkOverlay.classList.add('is-hidden'); }, 1100);
+  }, 1100);
 }
 
 function renderChoices() {
   choicesEl.innerHTML = '';
   if (!current) return;
   const opts = [];
-  if (stepIdx < current.body.length) opts.push(['「繼續說。」', cont]);
-  opts.push([stepIdx < current.body.length ? '「先帶我去下一件吧。」' : '「我明白了。下一件。」', () => goRel(1)]);
-  opts.push(['「回到上一件。」', () => goRel(-1)]);
-  opts.push(['（轉身離開。）', () => { line('you', '你', '（轉身離開。）'); setTimeout(closeDialogue, 300); }]);
-  opts.forEach(([t, fn], i) => {
+  if (stepIdx < current.body.length) opts.push(['"繼續說。" [Continue.]', cont, '']);
+  const v = VOICES[current.id];
+  if (v && !voiceRolled) {
+    const [vName, , vCheck] = v;
+    const meta = VOICE_META[vName] || { en: vName };
+    const diff = (vCheck || 'Medium: Success').split(':')[0];
+    opts.push([`[${meta.en} · ${vName} — ${diff}] 傾聽腦海中的聲音（擲骰檢定）`, () => runActiveCheck(v), 'choice--check']);
+  }
+  opts.push([stepIdx < current.body.length ? '"先帶我去下一件吧。"' : '"我明白了。下一件。"', () => goRel(1), '']);
+  opts.push(['"回到上一件。"', () => goRel(-1), '']);
+  opts.push(['[Leave.]（轉身離開。）', () => { line('you', 'YOU', '（轉身離開。）', '#CFD5BF', { portrait: 'public/portraits/You.png' }); setTimeout(closeDialogue, 300); }, '']);
+  opts.forEach(([t, fn, cls], i) => {
     const li = document.createElement('li');
-    li.className = 'choice';
-    li.innerHTML = `<span class="choice-key">${i + 1}.</span> <span class="choice-text">${esc(t)}</span>`;
+    li.className = `choice ${cls || ''}`.trim();
+    li.innerHTML = `<span class="choice-key">${i + 1}. -</span> <span class="choice-text">${esc(t)}</span>`;
     li.onclick = () => { stopTour(); fn(t); };
     choicesEl.appendChild(li);
   });
 }
-function cont(t = '「繼續說。」') {
+function cont(t = '"繼續說。"') {
   if (!current || stepIdx >= current.body.length) return;
-  line('you', '你', t);
+  line('you', 'YOU', t.replace(/ \[Continue\.\]$/, ''), '#CFD5BF', { portrait: 'public/portraits/You.png' });
   choicesEl.innerHTML = '';
   const ex = current;
-  setTimeout(() => { if (current !== ex) return; line('docent', '導覽員', ex.body[stepIdx++], 'var(--hall-accent)'); renderChoices(); }, 350);
+  const p = EXHIBIT_PORTRAITS[ex.id] || 'public/portraits/Encyclopedia.png';
+  setTimeout(() => { if (current !== ex) return; line('docent', 'CURATOR · 導覽員', ex.body[stepIdx++], 'var(--hall-accent)', { portrait: p }); renderChoices(); }, 350);
 }
 function goRel(d) {
   const i = (EXHIBITS.indexOf(current) + d + EXHIBITS.length) % EXHIBITS.length;
@@ -353,22 +435,72 @@ function goRel(d) {
 }
 function openDialogue(ex) {
   const hall = hallOf(ex.hall);
-  current = ex; stepIdx = 0;
+  current = ex; stepIdx = 0; voiceRolled = false;
   document.documentElement.style.setProperty('--hall-accent', hall.palette.accent);
   $('#dlg-hall').textContent = `HALL ${hall.no} · ${hall.zh}`;
   $('#dlg-title').textContent = ex.zh;
   $('#dlg-sub').textContent = `№ ${ex.no} · ${ex.title}`;
+  const p = EXHIBIT_PORTRAITS[ex.id] || 'public/portraits/Encyclopedia.png';
+  setPortrait(p);
   dlg.classList.add('is-open');
-  const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `№ ${ex.no}`;
+  const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `— № ${ex.no} · ${ex.title.toUpperCase()} —`;
   logEl.appendChild(sep);
   line('narration', null, narrate(ex));
-  setTimeout(() => { if (current !== ex) return; line('docent', '導覽員', ex.body[stepIdx++], 'var(--hall-accent)'); renderChoices();
+  setTimeout(() => { if (current !== ex) return; line('docent', 'CURATOR · 導覽員', ex.body[stepIdx++], 'var(--hall-accent)', { portrait: p }); renderChoices();
     const v = VOICES[ex.id];
-    if (v) setTimeout(() => { if (current === ex) line('voice', v[0], v[1], VOICE_COLORS[v[0]]); }, 900);
+    if (v) {
+      const [vName, vText, vCheck] = v;
+      const meta = VOICE_META[vName] || { en: vName, attr: 'intellect', portrait: 'public/portraits/Encyclopedia.png', sound: 'public/sounds/intellect.mp3' };
+      setTimeout(() => {
+        if (current !== ex || voiceRolled) return;
+        voiceRolled = true;
+        playMp3(meta.sound);
+        line('voice', `${meta.en} (${vName})`, vText, VOICE_COLORS[vName], {
+          check: vCheck || 'Medium: Success',
+          portrait: meta.portrait,
+        });
+        renderChoices();
+      }, 900);
+    }
   }, 450);
 }
 function closeDialogue() { dlg.classList.remove('is-open'); current = null; choicesEl.innerHTML = ''; }
 $('#dlg-close').onclick = closeDialogue;
+
+// 2.5D 漂浮灰燼粒子（AshesBackground）
+{
+  const ashCanvas = $('#dlg-ashes');
+  if (ashCanvas) {
+    const actx = ashCanvas.getContext('2d');
+    const AW = ashCanvas.width, AH = ashCanvas.height;
+    const ashes = Array.from({ length: 48 }, () => ({
+      x: Math.random() * 2 * AW - 0.5 * AW,
+      y: Math.random() * AH,
+      size: Math.random() * 2 + 2,
+      sx: (Math.random() + 0.2) * 0.75,
+      sy: Math.random() * -0.4 - 0.15,
+      alpha: Math.random() * 0.4 + 0.2,
+    }));
+    ctx.tick.push(() => {
+      if (!dlg.classList.contains('is-open')) return;
+      actx.clearRect(0, 0, AW, AH);
+      const wave = Math.sin(performance.now() / 1000) * 0.12;
+      for (const a of ashes) {
+        a.x += a.sx + wave;
+        a.y += a.sy;
+        if (a.alpha <= 0 || a.y < 0) {
+          a.x = Math.random() * 2 * AW - 0.5 * AW;
+          a.y = AH;
+        }
+        const al = a.alpha * (a.y / AH + 0.4) / 1.4;
+        actx.fillStyle = `rgba(220, 161, 141, ${al})`;
+        actx.beginPath();
+        actx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+        actx.fill();
+      }
+    });
+  }
+}
 
 // 自動導覽
 let tour = null;

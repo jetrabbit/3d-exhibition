@@ -53,31 +53,47 @@
   <ul id="list-items"></ul>
 </aside>
 
-<!-- 展品說明：Speech Cabinet 風格對話介面 -->
+<!-- 展品說明：直接移植自 tm-a-t/speech-cabinet 的 Player 與 MessageView 結構 -->
 <article id="info">
-  <div id="info-tape"></div>
-  <canvas id="info-ashes" width="480" height="960"></canvas>
-  <div class="info-top">
+  <div id="tape-background" class="tape-background"></div>
+  <canvas id="info-ashes" width="540" height="960"></canvas>
+
+  <!-- 頂部 Cover + 18:25 畫框肖像 (對齊 speech-cabinet Player top block) -->
+  <div class="sc-top">
     <div id="info-cover">
-      <canvas id="info-cover-canvas" width="560" height="240"></canvas>
+      <canvas id="info-cover-canvas" width="560" height="220"></canvas>
       <div class="info-head">
         <div id="info-hall"></div>
         <button id="info-close" aria-label="關閉">✕</button>
       </div>
     </div>
-    <div class="info-hero">
-      <div id="info-portrait-wrap">
-        <canvas id="info-portrait" width="180" height="250"></canvas>
+
+    <div class="sc-header-row">
+      <div id="sc-portrait-box">
+        <img id="sc-portrait-img" src="public/portraits/Encyclopedia.png" alt="">
+        <img id="sc-portrait-frame" src="public/layout/frame.png" alt="">
       </div>
       <div id="info-subject">
         <span id="info-no"></span>
         <h1 id="info-zh"></h1>
         <h2 id="info-title"></h2>
-        <div id="info-speaker-tag"></div>
       </div>
     </div>
   </div>
-  <div id="log"></div>
+
+  <!-- 技能檢定擲骰覆蓋層 (對齊 speech-cabinet ActiveCheckDiceStrip & check-success/failure) -->
+  <div id="sc-check-overlay" class="hidden" aria-hidden="true">
+    <img id="sc-check-bg" src="public/effects/check-success-background.png" alt="">
+    <div id="sc-dice-strip"></div>
+    <img id="sc-check-text" src="public/effects/check-success.svg" alt="">
+  </div>
+
+  <!-- 對話訊息捲軸區 (對齊 speech-cabinet #messages & MessageView) -->
+  <div id="log">
+    <div id="messages"></div>
+  </div>
+
+  <!-- 底部互動選項 + 主動檢定擲骰按鈕 -->
   <ol id="choices"></ol>
 </article>
 
