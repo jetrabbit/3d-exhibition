@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { HALLS, EXHIBITS } from './exhibits.js';
+import { HALLS, EXHIBITS, VOICES, VOICE_COLORS } from './exhibits.js';
 import { paintedSurface, panelTexture, plaqueTexture, signTexture } from './art.js';
 import { buildModel, plinth } from './models.js';
 
@@ -263,7 +263,6 @@ function updateFly(dt) {
   if (t >= 1) { const cb = fly.cb; fly = null; cb && cb(); }
 }
 
-const TOUR_HOLD = 14;
 function startTour(from = 0) {
   tour = { i: from, wait: 0 };
   document.getElementById('btn-tour').classList.add('on');
@@ -273,7 +272,7 @@ function startTour(from = 0) {
 function stepTour() {
   if (!tour) return;
   const ex = EXHIBITS[tour.i];
-  flyTo(ex, () => { if (!tour) return; openInfo(ex, true); tour.wait = TOUR_HOLD; });
+  flyTo(ex, () => { if (!tour) return; openInfo(ex, true); tour.hold = tour.wait = holdFor(ex.body[0]); });
 }
 function stopTour() {
   if (!tour) return;
@@ -284,38 +283,97 @@ function stopTour() {
 function updateTour(dt) {
   if (!tour || fly || tour.wait <= 0) return;
   tour.wait -= dt;
-  document.getElementById('tour-bar').style.width = `${(1 - tour.wait / TOUR_HOLD) * 100}%`;
-  if (tour.wait <= 0) {
-    tour.i++;
-    if (tour.i >= EXHIBITS.length) { stopTour(); closeInfo(); return; }
-    stepTour();
+  document.getElementById('tour-bar').style.width = `${(1 - tour.wait / tour.hold) * 100}%`;
+  if (tour.wait > 0) return;
+  if (current && step < current.body.length) {
+    tour.hold = tour.wait = holdFor(current.body[step]) + 0.3;
+    cont();
+    return;
   }
+  tour.i++;
+  if (tour.i >= EXHIBITS.length) { stopTour(); closeInfo(); return; }
+  stepTour();
 }
+const holdFor = (text) => Math.max(5, Math.min(14, text.length / 14));
 
 // ───────── UI ─────────
 const $ = (s) => document.querySelector(s);
 const info = $('#info');
-let current = null;
+const logEl = $('#log'), choicesEl = $('#choices');
+let current = null, step = 0;
+const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function say(who, text, cls = '', color = '') {
+  logEl.querySelectorAll('.line').forEach((l) => l.classList.add('old'));
+  const d = document.createElement('div');
+  d.className = `line ${cls}`;
+  d.innerHTML = `<b style="${color ? `color:${color}` : ''}">${esc(who)}</b><span class="dash"> — </span>${esc(text).replace(/\n/g, '<br>')}`;
+  logEl.appendChild(d);
+  requestAnimationFrame(() => d.classList.add('in'));
+  logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+}
+const docent = (t) => say('導覽員', t, 'docent', 'var(--accent)');
+
+function renderChoices() {
+  choicesEl.innerHTML = '';
+  if (!current) return;
+  const opts = [];
+  if (step < current.body.length) opts.push(['「繼續說。」', cont]);
+  else opts.push(['「我明白了。帶我去下一件展品。」', goNext]);
+  if (step < current.body.length) opts.push(['「先帶我去下一件展品吧。」', goNext]);
+  opts.push(['「回到上一件。」', goPrev]);
+  opts.push(['（轉身離開。）', () => { say('你', '（你轉身離開。）', 'you'); setTimeout(closeInfo, 350); }]);
+  opts.forEach(([t, fn], i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="k">${i + 1}.</span> ${esc(t)}`;
+    li.onclick = () => { stopTour(); fn(t); };
+    choicesEl.appendChild(li);
+  });
+}
+function cont(t = '「繼續說。」') {
+  if (!current || step >= current.body.length) return;
+  say('你', t, 'you');
+  const ex = current;
+  setTimeout(() => { if (current !== ex) return; docent(ex.body[step++]); renderChoices(); }, 300);
+  choicesEl.innerHTML = '';
+}
+const idx = (ex) => EXHIBITS.indexOf(ex);
+function goTo(ex, t) {
+  if (t) say('你', t, 'you');
+  choicesEl.innerHTML = '';
+  flyTo(ex, () => openInfo(ex, !!tour));
+}
+const goNext = (t) => goTo(EXHIBITS[(idx(current) + 1) % EXHIBITS.length], t);
+const goPrev = (t) => goTo(EXHIBITS[(idx(current) - 1 + EXHIBITS.length) % EXHIBITS.length], t);
+
 function openInfo(ex, fromTour = false) {
-  current = ex;
   const hall = hallOf(ex.hall);
+  const same = current === ex;
+  current = ex; step = 0;
   $('#info-hall').textContent = `HALL ${hall.no} · ${hall.zh}`;
   $('#info-no').textContent = `№ ${ex.no}`;
   $('#info-title').textContent = ex.title;
   $('#info-zh').textContent = ex.zh;
-  $('#info-body').innerHTML = ex.body.map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
   info.style.setProperty('--accent', hall.palette.accent);
   info.classList.add('open');
-  info.scrollTop = 0;
-  $('#info-body').scrollTop = 0;
+  if (!same) {
+    const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = `— № ${ex.no}　${ex.zh} —`;
+    logEl.appendChild(sep);
+  }
+  docent(ex.body[step++]);
+  const v = VOICES[ex.id];
+  if (v) setTimeout(() => { if (current === ex) say(`${v[0]}`, v[1], 'voice', VOICE_COLORS[v[0]]); }, 900);
+  renderChoices();
   document.querySelectorAll('#list li').forEach((li) => li.classList.toggle('active', li.dataset.id === ex.id));
   if (!fromTour) stopTour();
 }
-function closeInfo() { info.classList.remove('open'); current = null; }
+function closeInfo() { info.classList.remove('open'); current = null; choicesEl.innerHTML = ''; }
 $('#info-close').onclick = closeInfo;
-const idx = (ex) => EXHIBITS.indexOf(ex);
-$('#info-prev').onclick = () => { if (!current) return; const ex = EXHIBITS[(idx(current) - 1 + EXHIBITS.length) % EXHIBITS.length]; stopTour(); flyTo(ex, () => openInfo(ex)); };
-$('#info-next').onclick = () => { if (!current) return; const ex = EXHIBITS[(idx(current) + 1) % EXHIBITS.length]; stopTour(); flyTo(ex, () => openInfo(ex)); };
+addEventListener('keydown', (e) => {
+  if (!current || !/^Digit[1-9]$/.test(e.code)) return;
+  const li = choicesEl.children[+e.code.slice(5) - 1];
+  if (li) li.click();
+});
 
 $('#btn-tour').onclick = () => (tour ? stopTour() : startTour(current ? idx(current) : 0));
 $('#btn-list').onclick = () => $('#list').classList.toggle('open');
