@@ -25,7 +25,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background:
     radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay; opacity: .55;
+  opacity: .22; /* 不用 mix-blend-mode：疊在 WebGL 上會讓每一格都重新合成 */
 }
 
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #151413; z-index: 50; font-size: 20px; letter-spacing: .2em; color: var(--muted); }
@@ -34,7 +34,7 @@ body.ready #loading { display: none; }
 /* 展廳名稱 */
 #hall-label {
   position: fixed; top: 16px; left: 16px; z-index: 5; max-width: min(460px, calc(100vw - 32px));
-  background: var(--panel); border-left: 4px solid var(--accent); padding: 12px 16px; backdrop-filter: blur(6px);
+  background: var(--panel); border-left: 4px solid var(--accent); padding: 12px 16px;
   font-size: 20px; font-weight: 600;
 }
 #hall-label b { font-family: var(--display); color: var(--accent); margin-right: 8px; font-size: 15px; letter-spacing: .1em; }
@@ -53,7 +53,7 @@ body.ready #loading { display: none; }
 #toolbar {
   position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 5;
   display: flex; gap: 6px; background: var(--panel); padding: 8px; border: 1px solid var(--line); flex-wrap: wrap; justify-content: center;
-  max-width: calc(100vw - 32px);
+  width: max-content; max-width: calc(100vw - 32px);
 }
 #toolbar button, .actions button {
   background: rgba(241,234,217,.06); border: 1px solid var(--line); padding: 8px 14px; font-size: 14px; transition: background .2s, border-color .2s;
@@ -78,7 +78,7 @@ body.ready #loading { display: none; }
 
 /* 展品列表 */
 #list {
-  position: fixed; top: 0; left: 0; bottom: 0; width: min(340px, 86vw); z-index: 8; background: var(--panel); backdrop-filter: blur(8px);
+  position: fixed; top: 0; left: 0; bottom: 0; width: min(340px, 86vw); z-index: 8; background: rgba(22, 20, 18, 0.96);
   transform: translateX(-100%); transition: transform .35s ease; overflow-y: auto; padding: 20px 0; border-right: 1px solid var(--line);
 }
 #list.open { transform: none; }
@@ -306,7 +306,7 @@ body.ready #loading { display: none; }
 #choices li:hover .k { color: #ffffff; }
 
 /* 開場 */
-#intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(12,11,10,.78); backdrop-filter: blur(6px); padding: 16px; transition: opacity .5s; }
+#intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(12,11,10,.86); padding: 16px; transition: opacity .5s; }
 #intro.hidden { opacity: 0; pointer-events: none; }
 #intro .card { max-width: 720px; width: 100%; max-height: calc(100vh - 32px); overflow-y: auto; background: #1c1a17; border: 1px solid var(--line); padding: 36px 40px; border-top: 4px solid var(--accent); }
 .kicker { font-family: var(--display); font-size: 12px; letter-spacing: .25em; color: var(--accent); }
@@ -331,6 +331,7 @@ body.ready #loading { display: none; }
   #minimap { width: 180px; height: 54px; }
   #toolbar { bottom: 12px; gap: 4px; padding: 6px; }
   #toolbar button { padding: 7px 9px; font-size: 13px; }
+  #pad { bottom: 150px; }
   #info-cover { height: 90px; }
   #sc-portrait-box { width: 84px; }
 }
@@ -339,5 +340,9 @@ body.ready #loading { display: none; }
   body:has(#info.open) #toolbar, body:has(#info.open) #hint { left: calc(50% - 235px); }
 }
 
-#toolbar .btn-link { display: inline-flex; align-items: center; padding: 8px 14px; font-size: 14px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: rgba(241,234,217,.06); }
-#toolbar .btn-link:hover { border-color: var(--accent); }
+#toolbar #btn-view-unused { display: inline-flex; align-items: center; padding: 8px 14px; font-size: 14px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: rgba(241,234,217,.06); }
+#toolbar #btn-view-unused:hover { border-color: var(--accent); }
+
+/* 視角切換 */
+#btn-view { border-color: var(--accent) !important; }
+body[data-view=iso] #stage canvas { cursor: default; }
