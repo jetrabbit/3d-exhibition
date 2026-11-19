@@ -346,3 +346,5 @@ body.ready #loading { display: none; }
 /* 視角切換 */
 #btn-view { border-color: var(--accent) !important; }
 body[data-view=iso] #stage canvas { cursor: default; }
+
+.note a { color: var(--accent); }
